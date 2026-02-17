@@ -59,11 +59,13 @@ jobs:
       - name: Delete existing release
         run: |
           gh release delete ${{ env.PROJECT_VERSION }} --yes --cleanup-tag || echo "Release not found"
+          echo "Waiting for GitHub to sync deletion..."
+          sleep 5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.PROJECT_VERSION }}
           target_commitish: ${{ github.sha }}
@@ -72,3 +74,4 @@ jobs:
           files: release/lx-music-sync-server-${{ env.PROJECT_VERSION }}.zip
           draft: false
           prerelease: false
+          make_latest: true
