@@ -1606,21 +1606,16 @@ async function playSong(song, index, forceQuality = null, noPlay = false, isRetr
                 playSong(song, index, nextQuality);
             }, 1000);
         } else {
-            // 无法重试，显示错误并自动下一首
-            setPlayerStatus('播放失败，即将跳过...');
+            // 无法重试，显示错误并停止播放 (防止无限跳过循环)
+            console.error(`[Player] Playback failed: ${error.message}`);
+            setPlayerStatus('播放失败');
             showError(`播放失败: ${error.message}`);
 
-            // 延迟后自动播放下一首
-            setTimeout(() => {
-                if (playMode === 'single') {
-                    // 单曲循环模式下如果出错，强制切换到下一首，避免死循环
-                    let nextIndex = currentIndex + 1;
-                    if (nextIndex >= currentPlaylist.length) nextIndex = 0;
-                    playSong(currentPlaylist[nextIndex], nextIndex);
-                } else {
-                    playNext();
-                }
-            }, 2000);
+            // [Fix] Disable auto-skip on error to prevent infinite loop
+            // asking user to check sources instead
+            if (error.message.includes('not supported') || error.message.includes('自定义源')) {
+                showError('未找到该歌曲的可用源，请检查自定义源设置');
+            }
         }
         updatePlayButton(false);
     } finally {
@@ -1754,6 +1749,8 @@ function updatePlayerInfo(song) {
     if (titleEl) {
         titleEl.innerText = song.name;
         titleEl.setAttribute('data-text', song.name);
+        titleEl.classList.add('truncate');
+        titleEl.classList.remove('overflow-hidden');
     }
 
     // Bottom Player - 更新艺术家
@@ -1761,6 +1758,8 @@ function updatePlayerInfo(song) {
     if (artistEl) {
         artistEl.innerText = song.singer;
         artistEl.setAttribute('data-text', song.singer);
+        artistEl.classList.add('truncate');
+        artistEl.classList.remove('overflow-hidden');
     }
 
     // 触发滚动检测
