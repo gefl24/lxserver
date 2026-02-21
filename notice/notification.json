@@ -18,25 +18,25 @@
         }
     },
     {
-        "comment": "=== 版本更新 v1.5.2 ===",
-        "id": "update_v1_5_2",
+        "comment": "=== 版本更新 v1.5.3 ===",
+        "id": "update_v1_5_3",
         "status": "active",
         "type": "version",
         "logic": {
-            "target_version": "v1.5.2",
+            "target_version": "v1.5.3",
             "operator": "<",
             "interval_hours": 24
         },
         "ui": {
-            "title": "发现新版本 v1.5.2",
-            "date": "2026-02-20",
-            "message": "本次更新引入了期待已久的逐字歌词支持，并优化了歌词显示效果：\n1. 🎤 逐字歌词支持：新增 Karaoke 级别动效，歌词平滑扫过，支持翻译与罗马音同步。\n2. ✨ 歌词荧光效果：控制歌词点亮时的荧光氛围感，支持开关控制，让播放界面更具沉浸感。\n3. 🔧 交互逻辑优化：修复点击歌词切换状态问题，优化了非逐字歌词的点亮效果及样式细节。\n4. 📜 修复及优化详见版本日志记录",
+            "title": "发现新版本 v1.5.3",
+            "date": "2026-02-21",
+            "message": "本次更新带来了以下变动：\n1. ⬆️ 自定义源排序：新增自定义源列表拖拽排序功能，解析将优先根据排序队列执行。\n2. 📄 解析详情提示：提供更详尽的解析失败 Toast 提示，方便排查音源错误。\n3. 🔧 VM加载修复：进一步修复与强化了原生 VM 模式下对复杂 JS 音源脚本的加载与隔离兼容性。",
             "confirm_text": "去查看",
             "cancel_text": "稍后提醒"
         },
         "action": {
             "type": "link",
-            "url": "https://github.com/XCQ0607/lxserver/releases/tag/v1.5.2"
+            "url": "https://github.com/XCQ0607/lxserver/releases/tag/v1.5.3"
         }
     }
 ]

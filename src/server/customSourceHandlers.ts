@@ -360,17 +360,40 @@ export async function handleToggle(req: IncomingMessage, res: ServerResponse) {
             throw new Error('源不存在')
         }
 
+        const oldEnabled = target.enabled
+        const oldAllowUnsafeVM = !!target.allowUnsafeVM
+
+        // 修改逻辑：只有当参数明确为 true 时才更新为 true，防止被默认值 false 覆盖
+        if (allowUnsafeVM === true) target.allowUnsafeVM = true
         target.enabled = enabled !== undefined ? enabled : !target.enabled
-        if (allowUnsafeVM !== undefined) target.allowUnsafeVM = allowUnsafeVM
 
         fs.writeFileSync(metaPath, JSON.stringify(sources, null, 2))
 
         // 重新加载
         try {
             await initUserApis(targetOwner)
+
+            // 如果是尝试启用，检查启用后的实时状态
+            if (target.enabled) {
+                const status = getApiStatus(targetId)
+                if (status && status.status === 'failed' && status.error === 'REQUIRE_UNSAFE_VM') {
+                    console.warn(`[CustomSource] Detect REQUIRE_UNSAFE_VM during toggle for ${targetId}, rolling back...`)
+                    // 回滚状态
+                    target.enabled = oldEnabled
+                    target.allowUnsafeVM = oldAllowUnsafeVM
+                    fs.writeFileSync(metaPath, JSON.stringify(sources, null, 2))
+                    await initUserApis(targetOwner)
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' })
+                    res.end(JSON.stringify({ success: false, requireUnsafe: true, message: '该脚本需要原生 VM 模式运行，可能存在安全风险，是否继续？' }))
+                    return
+                }
+            }
+
             res.writeHead(200, { 'Content-Type': 'application/json' })
             res.end(JSON.stringify({ success: true, enabled: target.enabled }))
         } catch (e: any) {
+            // initUserApis 本身不应抛出这个错误（内部已捕获并记录 status），但为了健壮性保留此判断
             if (e.message === 'REQUIRE_UNSAFE_VM') {
                 res.writeHead(200, { 'Content-Type': 'application/json' })
                 res.end(JSON.stringify({ success: false, requireUnsafe: true, message: '该脚本需要原生 VM 模式运行，可能存在安全风险，是否继续？' }))
@@ -380,6 +403,69 @@ export async function handleToggle(req: IncomingMessage, res: ServerResponse) {
         }
     } catch (err: any) {
         console.error('[CustomSource] Toggle error:', err)
+        res.writeHead(500)
+        res.end(err.message)
+    }
+}
+
+// 拖拽排序，更新 sources.json 中源的顺序
+export async function handleReorder(req: IncomingMessage, res: ServerResponse) {
+    try {
+        const body = await readBody(req)
+        const { username, sourceIds } = JSON.parse(body)
+
+        if (!Array.isArray(sourceIds)) {
+            throw new Error('sourceIds must be an array')
+        }
+
+        let targetOwner = (username && username !== 'default') ? username : 'open'
+        let sourcesDir = getSourceDir(targetOwner)
+        let metaPath = path.join(sourcesDir, 'sources.json')
+
+        // Fallback to open if needed
+        if (!fs.existsSync(metaPath) && targetOwner !== 'open') {
+            const openSourcesDir = getSourceDir('open')
+            const openMetaPath = path.join(openSourcesDir, 'sources.json')
+            if (fs.existsSync(openMetaPath)) {
+                targetOwner = 'open'
+                sourcesDir = openSourcesDir
+                metaPath = openMetaPath
+            }
+        }
+
+        if (!fs.existsSync(metaPath)) {
+            throw new Error('源列表不存在')
+        }
+
+        // Read current sources
+        const sources = JSON.parse(fs.readFileSync(metaPath, 'utf-8'))
+
+        // Reconstruct the array: order it according to sourceIds, any missing go to the end
+        const newSources: any[] = []
+        const currentSourcesMap = new Map(sources.map((s: any) => [s.id, s]))
+
+        for (const id of sourceIds) {
+            if (currentSourcesMap.has(id)) {
+                newSources.push(currentSourcesMap.get(id))
+                currentSourcesMap.delete(id)
+            }
+        }
+
+        // Add any remaining sources that somehow weren't in the id array to the end
+        for (const [id, source] of currentSourcesMap) {
+            newSources.push(source)
+        }
+
+        // Save
+        fs.writeFileSync(metaPath, JSON.stringify(newSources, null, 2))
+
+        // Reload APIs to apply new priority ordering
+        await initUserApis(targetOwner)
+
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ success: true }))
+    } catch (err: any) {
+        console.error('[CustomSource] Reorder error:', err)
         res.writeHead(500)
         res.end(err.message)
     }

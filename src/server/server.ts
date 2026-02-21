@@ -1621,14 +1621,18 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
             const source = songInfo.source
             let result
 
-            // 优先使用自定义源
-            // 传递 clientUsername 进行权限过滤
+            let customSourceError: string | null = null
+            let attempts: any[] = []
             if (isSourceSupported(source, clientUsername)) {
               try {
                 console.log(`[MusicUrl] Using custom source for: ${source} (User: ${clientUsername || 'Guest'})`)
-                result = await callUserApiGetMusicUrl(source, songInfo, quality || '128k', clientUsername)
+                const userApiResult = await callUserApiGetMusicUrl(source, songInfo, quality || '128k', clientUsername)
+                result = userApiResult
+                attempts = userApiResult.attempts || []
               } catch (userApiError: any) {
                 console.error(`[MusicUrl] Custom source failed:`, userApiError.message)
+                customSourceError = userApiError.message
+                attempts = userApiError.attempts || []
                 // 不抛出错误，继续尝试内置源
               }
             }
@@ -1636,10 +1640,22 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
             // 回退到内置 musicSdk
             if (!result) {
               if (!musicSdk[source] || !musicSdk[source].getMusicUrl) {
+                // 如果内置也不支持，且自定义源也报错了，合并错误抛出
+                if (customSourceError) {
+                  const err: any = new Error(`自定义源获取失败: ${customSourceError}`)
+                  err.attempts = attempts
+                  throw err
+                }
                 throw new Error(`Source ${source} not supported`)
               }
               console.log(`[MusicUrl] Using built-in musicSdk for: ${source}`)
               result = await musicSdk[source].getMusicUrl(songInfo, quality || '128k')
+            }
+
+            // 合并自定义源的错误消息和尝试记录用于前端提示
+            if (result) {
+              if (customSourceError) result.errorMsg = customSourceError
+              if (attempts.length > 0) result.attempts = attempts
             }
 
             // [Fix] Server-side Mixed Content handling & Redirect Resolution
@@ -1699,7 +1715,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
             console.error('[MusicUrl] Error:', err.message)
             // [Fix] Return 500 but with specific error JSON to let frontend show detailed toast
             res.writeHead(500, { 'Content-Type': 'application/json' })
-            res.end(JSON.stringify({ error: err.message, code: 500 }))
+            res.end(JSON.stringify({ error: err.message, code: 500, attempts: err.attempts }))
           }
         })
         return
@@ -1821,8 +1837,9 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return customSourceHandlers.handleDelete(req, res)
       }
 
-
-
+      if (pathname === '/api/custom-source/reorder' && req.method === 'POST') {
+        return customSourceHandlers.handleReorder(req, res)
+      }
 
       // elFinder 文件管理器连接器
       if (pathname === '/api/elfinder/connector') {

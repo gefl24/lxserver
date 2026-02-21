@@ -33,8 +33,8 @@ function decontextify(obj: any): any {
         }
     }
 
-    // 处理 Error
-    if (obj instanceof Error) {
+    // 处理 Error (增加对沙箱内 Error 的识别)
+    if (obj instanceof Error || (obj && obj.constructor && obj.constructor.name === 'Error')) {
         const err = new Error(obj.message)
         err.stack = obj.stack
         return err
@@ -120,7 +120,7 @@ export function extractMetadata(script: string): Partial<UserApiInfo> {
 }
 
 // 创建 lx.request 包装器（使用 needle）
-function createLxRequest() {
+function createLxRequest(isUnsafe: boolean = false) {
     return (url: string, options: any, callback: Function) => {
         const safeOptions = decontextify(options || {})
         const { method = 'get', timeout, headers, body, form, formData } = safeOptions
@@ -151,12 +151,27 @@ function createLxRequest() {
                         } catch { }
                     }
 
-                    const safeResp = {
+                    let safeResp: any = {
                         statusCode: resp.statusCode,
                         statusMessage: resp.statusMessage,
                         headers: resp.headers,
                         body: decontextify(parsedBody)
                     }
+
+                    // 核心修复：原生 VM 模式下，将响应对象通过 JSON 转换以修复原型链，但保留原始 Body 引用（如果不是对象）
+                    if (isUnsafe) {
+                        const jsonBody = (typeof parsedBody === 'object' && !Buffer.isBuffer(parsedBody))
+                            ? JSON.parse(JSON.stringify(parsedBody))
+                            : parsedBody;
+
+                        safeResp = JSON.parse(JSON.stringify({
+                            statusCode: resp.statusCode,
+                            statusMessage: resp.statusMessage,
+                            headers: resp.headers
+                        }));
+                        safeResp.body = jsonBody;
+                    }
+
                     callback.call(null, null, safeResp, safeResp.body)
                 }
             } catch (error: any) {
@@ -176,14 +191,6 @@ export async function loadUserApi(apiInfo: UserApiInfo): Promise<any> {
     const metadata = extractMetadata(apiInfo.script)
     const fullApiInfo = { ...apiInfo, ...metadata }
 
-    const sandbox: any = {
-        console,
-        setTimeout,
-        clearTimeout,
-        setInterval,
-        clearInterval,
-    }
-
     // 创建事件处理映射
     const eventHandlers = new Map<string, Function>()
     let registeredSources: any = {}
@@ -197,8 +204,8 @@ export async function loadUserApi(apiInfo: UserApiInfo): Promise<any> {
     })
     // ==================================================
 
-    // lx 环境数据准备 (我们不在 sandbox 中直接放对象，而是通过 vm.run 注入)
-    const lxData = {
+    // lx 环境数据准备
+    const lxDataInside = {
         version: '2.0.0',
         env: 'desktop',
         platform: 'web',
@@ -217,34 +224,43 @@ export async function loadUserApi(apiInfo: UserApiInfo): Promise<any> {
         }
     }
 
-    // 注入桥接函数
-    sandbox._bridge = {
-        // Utils
-        crypto_md5: (str: string) => crypto.createHash('md5').update((decontextify(str) || '') as any).digest('hex'),
-        crypto_aesEncrypt: (buffer: any, mode: string, key: any, iv: any) => {
-            const dKey = decontextify(key)
-            const dIv = decontextify(iv)
-            const dBuffer = decontextify(buffer)
-            const algorithm = `aes-${(dKey as any).length * 8}-${mode}`
-            const cipher = crypto.createCipheriv(algorithm as any, dKey as any, dIv as any)
-            return Buffer.concat([cipher.update(dBuffer as any) as any, cipher.final() as any])
+    // 构建 lx 工具集
+    const lxUtils = {
+        buffer: {
+            from: (d: any, e: any) => Buffer.from(decontextify(d), decontextify(e)),
+            bufToString: (b: any, f: any) => Buffer.isBuffer(b) ? b.toString(f) : Buffer.from(b, 'binary').toString(f)
         },
-        crypto_rsaEncrypt: (buffer: any, key: any) => crypto.publicEncrypt(decontextify(key) as any, decontextify(buffer) as any),
-        crypto_randomBytes: (size: number) => crypto.randomBytes(size),
-        zlib_inflate: (buffer: any) => inflate(decontextify(buffer) as any),
-        zlib_deflate: (buffer: any) => deflate(decontextify(buffer) as any),
+        crypto: {
+            md5: (str: string) => crypto.createHash('md5').update((decontextify(str) || '') as any).digest('hex'),
+            aesEncrypt: (buffer: any, mode: string, key: any, iv: any) => {
+                const dKey = decontextify(key)
+                const dIv = decontextify(iv)
+                const dBuffer = decontextify(buffer)
+                const algorithm = `aes-${(dKey as any).length * 8}-${mode}`
+                const cipher = crypto.createCipheriv(algorithm as any, dKey as any, dIv as any)
+                return Buffer.concat([cipher.update(dBuffer as any) as any, cipher.final() as any])
+            },
+            rsaEncrypt: (buffer: any, key: any) => crypto.publicEncrypt(decontextify(key) as any, decontextify(buffer) as any),
+            randomBytes: (size: number) => crypto.randomBytes(size),
+        },
+        zlib: {
+            inflate: (buffer: any) => inflate(decontextify(buffer) as any),
+            deflate: (buffer: any) => deflate(decontextify(buffer) as any),
+        }
+    }
 
-        // Network
-        request: createLxRequest(),
-
-        // System
+    // 核心 lx 对象
+    const lxObject = {
+        ...lxDataInside,
+        utils: lxUtils,
+        request: createLxRequest(!!apiInfo.allowUnsafeVM),
         send: (eventName: string, data: any) => {
             const dData = decontextify(data)
-            console.log(`[UserApi-${fullApiInfo.name}] send:`, eventName)
+            // console.log(`[UserApi-${fullApiInfo.name}] send:`, eventName)
             if (eventName === 'inited') {
                 if (dData && dData.sources) {
                     registeredSources = dData.sources
-                    console.log(`[UserApi-${fullApiInfo.name}] Registered sources:`, Object.keys(registeredSources))
+                    console.log(`[UserApi-${fullApiInfo.name}] Registered sources:`, Object.keys(registeredSources).join(', '))
                 }
                 if (initResolve) initResolve()
             } else if (eventName === 'updateAlert') {
@@ -253,61 +269,63 @@ export async function loadUserApi(apiInfo: UserApiInfo): Promise<any> {
             }
         },
         on: (eventName: string, handler: Function) => {
-            console.log(`[UserApi-${fullApiInfo.name}] on:`, eventName)
+            // console.log(`[UserApi-${fullApiInfo.name}] on:`, eventName)
             if (eventName === 'request') {
                 eventHandlers.set(eventName, handler)
             }
         }
     }
 
-    // 设置 globalThis
-    sandbox.__filename = `custom_source_${fullApiInfo.id}.js`
-    sandbox.__dirname = '/custom_sources'
-
-    // 初始化 exports 和 module
-    sandbox.exports = {}
-    sandbox.module = { exports: sandbox.exports }
-
-
-    // =========================================================================
-    // 注入方案：直接在 VM 内构建对象
-    // =========================================================================
-    const injectionCode = `
-        this.global = this; this.window = this; this.globalThis = this;
-        const _b = _bridge;
-        this.lx = ${JSON.stringify(lxData)};
-        this.lx.utils = {
-            buffer: {
-                from: (d, e) => Buffer.from(d, e),
-                bufToString: (b, f) => Buffer.isBuffer(b) ? b.toString(f) : Buffer.from(b, 'binary').toString(f)
-            },
-            crypto: {
-                md5: (s) => _b.crypto_md5(s),
-                aesEncrypt: (b, m, k, i) => _b.crypto_aesEncrypt(b, m, k, i),
-                rsaEncrypt: (b, k) => _b.crypto_rsaEncrypt(b, k),
-                randomBytes: (s) => _b.crypto_randomBytes(s)
-            },
-            zlib: {
-                inflate: (b) => _b.zlib_inflate(b),
-                deflate: (b) => _b.zlib_deflate(b)
-            }
-        };
-        this.lx.request = (u, o, c) => _b.request(u, o, c);
-        this.lx.send = (e, d) => _b.send(e, d);
-        this.lx.on = (e, h) => _b.on(e, h);
-        delete this._bridge;
-    `
+    // 完整沙箱环境
+    const sandbox: any = {
+        // console: {
+        //     log: () => { }, // 静默脚本内部的普通日志
+        //     info: () => { },
+        //     error: console.error,
+        //     warn: console.warn,
+        //     debug: console.debug,
+        //     time: console.time,
+        //     timeEnd: console.timeEnd
+        // },
+        console,
+        setTimeout,
+        clearTimeout,
+        setInterval,
+        clearInterval,
+        Buffer,
+        URL,
+        URLSearchParams,
+        TextEncoder,
+        TextDecoder,
+        process: {
+            nextTick: (fn: Function, ...args: any[]) => setTimeout(() => fn(...args), 0),
+            env: { NODE_ENV: process.env.NODE_ENV || 'production' }
+        },
+        lx: lxObject,
+        // 关键：适配混淆脚本对全局变量的引用
+        global: null,
+        window: null,
+        globalThis: null,
+        atob: (s: string) => Buffer.from(s, 'base64').toString('binary'),
+        btoa: (s: string) => Buffer.from(s, 'binary').toString('base64'),
+        crypto: crypto
+    }
+    sandbox.global = sandbox
+    sandbox.window = sandbox
+    sandbox.globalThis = sandbox
 
     try {
         if (apiInfo.allowUnsafeVM) {
-            // 情况1：已确认允许，直接使用原生 vm (直线解决)
-            console.log(`[UserApi] ${fullApiInfo.name} 已启用原生 VM 模式，正在运行...`)
+            console.log(`[UserApi] ${fullApiInfo.name} 正在以原生 VM 模式启动...`)
             const vm = require('vm')
             const context = vm.createContext(sandbox)
-            vm.runInContext(injectionCode, context)
-            vm.runInContext(apiInfo.script, context)
+            // 不再注入 injectionCode 字符串，环境已在 sandbox 中就绪
+            vm.runInContext(apiInfo.script, context, {
+                filename: `custom_source_${fullApiInfo.id}.js`,
+                timeout: 10000
+            })
         } else {
-            // 情况2：优先尝试安全的 vm2
+            // 保持 vm2 逻辑用于安全模式
             try {
                 const vmInstance = new VM({
                     timeout: 10000,
@@ -315,12 +333,11 @@ export async function loadUserApi(apiInfo: UserApiInfo): Promise<any> {
                     eval: true,
                     wasm: false,
                 })
-                vmInstance.run(injectionCode)
                 await vmInstance.run(apiInfo.script)
             } catch (e: any) {
                 const isContextError = e.message.includes('contextified object') || e.message.includes('Operation not allowed')
                 if (isContextError) {
-                    console.warn(`[UserApi] ${fullApiInfo.name} 触发 vm2 安全限制，需要用户确认`)
+                    console.warn(`[UserApi] ${fullApiInfo.name} 触发 vm2 安全限制，正在提示用户开启 VM 模式`)
                     throw new Error('REQUIRE_UNSAFE_VM')
                 }
                 throw e
@@ -328,29 +345,32 @@ export async function loadUserApi(apiInfo: UserApiInfo): Promise<any> {
         }
 
         // 等待脚本调用 lx.send('inited')（最多等待 3 秒）
-        console.log(`[UserApi] Waiting for ${fullApiInfo.name} to initialize...`)
         await Promise.race([
             initPromise,
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Init timeout after 3s')), 3000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('初始化超时，请确保脚本调用了 lx.send("inited", ...)')), 3000))
         ])
-        console.log(`[UserApi] ${fullApiInfo.name} initialized successfully`)
 
         // 保存加载的 API
         const apiInstance = {
             info: { ...fullApiInfo, sources: registeredSources },
             handlers: eventHandlers,
             callRequest: async (action: string, source: string, info: any) => {
-                const handler = eventHandlers.get('request')
-                if (!handler) {
-                    throw new Error(`No request handler for ${fullApiInfo.name}`)
-                }
+                try {
+                    const handler = eventHandlers.get('request')
+                    if (!handler) throw new Error(`源 ${fullApiInfo.name} 未注册 request 处理器`)
 
-                const result = await handler({
-                    action,
-                    source,
-                    info
-                })
-                return decontextify(result)
+                    // 核心修复：如果是原生 VM 模式，将传入数据 JSON 化以纯净化原型链（确保它是 VM 内的对象）
+                    let inputData = { action, source, info }
+                    if (apiInfo.allowUnsafeVM) {
+                        inputData = JSON.parse(JSON.stringify(inputData))
+                    }
+
+                    const result = await handler(inputData)
+                    return decontextify(result)
+                } catch (e: any) {
+                    console.error(`[UserApi-${fullApiInfo.name}] callRequest Error:`, e.message)
+                    throw e
+                }
             }
         }
 
@@ -374,7 +394,7 @@ export async function callUserApiGetMusicUrl(
     songInfo: any,
     quality: string,
     clientUsername?: string
-): Promise<{ url: string, type: string }> {
+): Promise<{ url: string, type: string, sourceName?: string, attempts?: any[] }> {
     // 标准化 songInfo 格式：将 meta 中的字段提升到顶层
     const normalizedSongInfo = { ...songInfo }
     if (songInfo.meta) {
@@ -431,8 +451,8 @@ export async function callUserApiGetMusicUrl(
             normalizedSongInfo.albumMid = songInfo.meta.albumMid
         }
 
-        // 删除 meta 对象以免有些严谨的脚本报错
-        delete normalizedSongInfo.meta
+        // 不再删除 meta 对象，以免有些严谨的脚本报错（许多脚本会读取 info.meta）
+        // delete normalizedSongInfo.meta
     }
 
     // ========== 顶层字段兜底映射 ==========
@@ -489,6 +509,8 @@ export async function callUserApiGetMusicUrl(
     // 1. 如果只有一个源支持 -> 重试 3 次
     // 2. 如果有多个源支持 -> 每个源试一次 (轮询)
 
+    const attempts: any[] = []
+
     if (supportedCount === 1) {
         const api = candidates[0]
         const maxRetries = 3
@@ -502,11 +524,13 @@ export async function callUserApiGetMusicUrl(
                     type: quality
                 })
 
-                console.log(`[UserApi] ✓ ${api.info.name} 成功返回链接`)
-                return { url, type: quality }
+                console.log(`[UserApi] ✓ ${api.info.name} 成功返回链接 (Owner: ${api.info.owner})`)
+                attempts.push({ name: api.info.name, status: 'success', message: `第 ${i + 1} 次尝试成功` })
+                return { url, type: quality, sourceName: api.info.name, attempts }
             } catch (error: any) {
                 console.error(`[UserApi] ${api.info.name} 失败 (第 ${i + 1}/${maxRetries} 次):`, error.message)
                 lastError = error
+                attempts.push({ name: api.info.name, status: 'fail', message: `第 ${i + 1} 次尝试失败: ${error.message}` })
                 // 如果不是最后一次尝试，等待一小会儿
                 if (i < maxRetries - 1) {
                     await new Promise(r => setTimeout(r, 1000))
@@ -524,17 +548,25 @@ export async function callUserApiGetMusicUrl(
                     type: quality
                 })
 
-                console.log(`[UserApi] ✓ ${api.info.name} 成功返回链接`)
-                return { url, type: quality }
+                console.log(`[UserApi] ✓ ${api.info.name} 成功返回链接 (Owner: ${api.info.owner})`)
+                attempts.push({ name: api.info.name, status: 'success' })
+                return { url, type: quality, sourceName: api.info.name, attempts }
             } catch (error: any) {
                 console.error(`[UserApi] ${api.info.name} 失败:`, error.message)
                 lastError = error
+                attempts.push({ name: api.info.name, status: 'fail', message: error.message })
                 continue
             }
         }
     }
 
-    throw new Error(`已尝试 ${supportedCount} 个支持 ${source} 的源 (或单源尝试 ${supportedCount === 1 ? 3 : supportedCount} 次)，但全部失败。最后错误: ${lastError?.message}`)
+    const detailMsg = supportedCount === 1
+        ? `单音源 [${candidates[0].info.name}] 连续 3 次尝试均失败`
+        : `已尝试全部 ${supportedCount} 个支持 ${source} 的自定义音源，但全部失败`
+
+    const finalError: any = new Error(`${detailMsg}。最后错误: ${lastError?.message}`)
+    finalError.attempts = attempts
+    throw finalError
 }
 
 // 辅助函数：加载指定目录下的源
@@ -551,6 +583,7 @@ async function loadSourcesFromDir(dirPath: string, owner: string, stats: { loade
         for (const source of sources) {
             if (!source.enabled) {
                 console.log(`[UserApi] [${owner}] 跳过已禁用: ${source.name}`)
+                apiStatus.delete(source.id)
                 continue
             }
 
@@ -706,10 +739,11 @@ export async function initUserApis(targetUser?: string) {
 
     if (targetUser) {
         console.log(`[UserApi] 重新加载用户源: ${targetUser}`)
-        // 清理该用户的旧源
+        // 清理该用户的旧源和状态
         for (const [id, api] of loadedApis.entries()) {
             if (api.info.owner === targetUser) {
                 loadedApis.delete(id)
+                apiStatus.delete(id)
             }
         }
 

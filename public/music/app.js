@@ -1263,91 +1263,14 @@ async function playSong(song, index, forceQuality = null, noPlay = false, isRetr
 
         console.log(`[Player] 播放歌曲: ${song.name} - ${song.singer} [${quality}]`);
 
-        // ===== 尝试读取缓存链接 =====
         const cleanedSong = cleanSongData(song);
-        const cacheKey = `lx_url_${cleanedSong.id}_${quality}`; // 使用统一前缀
+        const cacheKey = `lx_url_${cleanedSong.id}_${quality}`;
 
-        // 只在非重试请求中首先尝试链接缓存
-        if (!isRetry && settings.enableSongUrlCache !== false && !forceQuality) {
-            const cachedUrl = localStorage.getItem(cacheKey);
-            if (cachedUrl) {
-                console.log('[Player] 使用缓存链接:', cachedUrl);
+        // ===== 优先尝试：读取服务器文件缓存 (本地文件) =====
+        // 优先级逻辑链: 服务器文件缓存 (本地文件) > 链接缓存 (浏览器) > 在线获取
+        const allowServerCache = !isRetry && settings.enableServerCache && !forceQuality;
 
-                let finalUrl = cachedUrl;
-                // Apply Proxy Setting logic
-                if (settings.enableProxyPlayback) {
-                    if (!finalUrl.startsWith('/api/music/download')) {
-                        const filename = `${song.singer} - ${song.name}.mp3`;
-                        finalUrl = `/api/music/download?url=${encodeURIComponent(cachedUrl)}&filename=${encodeURIComponent(filename)}&inline=1`;
-                    }
-                }
-
-                audio.src = finalUrl;
-
-                // 设置重试机制：如果缓存链接失效，则清除缓存，并尝试逻辑链下一环（服务器文件缓存）
-                const retryHandler = () => {
-                    console.warn('[Player] 缓存链接失效，正在尝试逻辑链下一环（服务器缓存）...');
-                    localStorage.removeItem(cacheKey);
-                    // 标记为 'link_retry'，以便后续允许检查服务器缓存
-                    playSong(song, index, forceQuality, noPlay, 'link_retry');
-                };
-
-                audio.addEventListener('error', retryHandler, { once: true });
-
-                // 成功播放后移除错误监听
-                const successHandler = () => {
-                    audio.removeEventListener('error', retryHandler);
-                };
-                audio.addEventListener('playing', successHandler, { once: true });
-
-                // 设置链接来源为缓存
-                currentSourceType = 'cache';
-
-                // 如果是静默加载（用于恢复进度）
-                if (noPlay) {
-                    currentQuality = quality;
-                    setPlayerStatus('', false);
-                    updatePlayButton(false);
-                    if (window._resumeInfo && window._resumeInfo.time > 0) {
-                        audio.addEventListener('loadedmetadata', () => {
-                            audio.currentTime = window._resumeInfo.time;
-                            delete window._resumeInfo;
-                        }, { once: true });
-                    }
-                    return;
-                }
-
-                // [Improvement] 这里不要直接显示 "播放中"，而是在真的 play 开始前提示加载
-                setPlayerStatus('正在加载缓存链接...', false);
-                if (!noPlay) {
-                    try {
-                        if (settings.enableCrossfade) {
-                            audio.volume = 0;
-                        } else {
-                            audio.volume = typeof currentVolume !== 'undefined' ? currentVolume : 1;
-                        }
-
-                        await audio.play();
-
-                        if (settings.enableCrossfade) {
-                            fadeVolume(typeof currentVolume !== 'undefined' ? currentVolume : 1, 1000);
-                        }
-                        // 真正的状态更新交由 play/playing 事件监听器处理
-                    } catch (e) {
-                        console.error("[Player] Auto-play failed:", e);
-                        updatePlayButton(false);
-                    }
-                }
-                return; // 命中缓存
-            }
-        }
-
-        // ===== 尝试读取服务器文件缓存 =====
-        // 优先级逻辑链: 链接缓存 > 服务器文件缓存 > 在线获取
-        // [Improvement] 如果 isRetry === 'link_retry'，说明链接缓存刚失效，这里可以继续尝试服务器缓存
-        const allowServerCache = !isRetry || isRetry === 'link_retry';
-
-        if (allowServerCache && settings.enableServerCache && !forceQuality) {
+        if (allowServerCache) {
             setPlayerStatus('正在检查服务器缓存...');
             const serverCacheUrl = await checkServerCache(cleanedSong, quality);
             if (serverCacheUrl) {
@@ -1356,9 +1279,10 @@ async function playSong(song, index, forceQuality = null, noPlay = false, isRetr
                 audio.src = serverCacheUrl; // 本地路径，无需代理
 
                 const retryHandler = () => {
-                    console.warn('[Player] 服务器缓存文件失效，正在尝试在线获取...');
-                    // 服务器缓存也死掉，则彻底走在线获取 (标记为 true 即可跳过所有缓存逻辑)
-                    playSong(song, index, forceQuality, noPlay, true);
+                    console.warn('[Player] 服务器缓存文件失效，正在尝试逻辑链下一环（链接缓存）...');
+                    showInfo('本地缓存文件失效，尝试链接缓存...');
+                    // 服务器缓存失效，跳过它尝试链接缓存
+                    playSong(song, index, forceQuality, noPlay, 'local_retry');
                 };
                 audio.addEventListener('error', retryHandler, { once: true });
                 const successHandler = () => { audio.removeEventListener('error', retryHandler); };
@@ -1391,6 +1315,7 @@ async function playSong(song, index, forceQuality = null, noPlay = false, isRetr
                         }
 
                         await audio.play();
+                        showSuccess('已命中本地文件播放');
 
                         if (settings.enableCrossfade) {
                             fadeVolume(typeof currentVolume !== 'undefined' ? currentVolume : 1, 1000);
@@ -1404,10 +1329,88 @@ async function playSong(song, index, forceQuality = null, noPlay = false, isRetr
             }
         }
 
+        // ===== 其次尝试：读取链接缓存 (浏览器 localStorage) =====
+        const allowLinkCache = (!isRetry || isRetry === 'local_retry') && settings.enableSongUrlCache !== false && !forceQuality;
+
+        if (allowLinkCache) {
+            const cachedUrl = localStorage.getItem(cacheKey);
+            if (cachedUrl) {
+                console.log('[Player] 使用缓存链接:', cachedUrl);
+
+                let finalUrl = cachedUrl;
+                // Apply Proxy Setting logic
+                if (settings.enableProxyPlayback) {
+                    if (!finalUrl.startsWith('/api/music/download')) {
+                        const filename = `${song.singer} - ${song.name}.mp3`;
+                        finalUrl = `/api/music/download?url=${encodeURIComponent(cachedUrl)}&filename=${encodeURIComponent(filename)}&inline=1`;
+                    }
+                }
+
+                audio.src = finalUrl;
+
+                // 设置重试机制：如果缓存链接失效，则清除缓存，并尝试在线获取
+                const retryHandler = () => {
+                    console.warn('[Player] 缓存链接失效，正在尝试在线获取...');
+                    showInfo('缓存链接失效，尝试在线获取...');
+                    localStorage.removeItem(cacheKey);
+                    // 标记为 true，跳过所有缓存逻辑
+                    playSong(song, index, forceQuality, noPlay, true);
+                };
+
+                audio.addEventListener('error', retryHandler, { once: true });
+
+                // 成功播放后移除错误监听
+                const successHandler = () => {
+                    audio.removeEventListener('error', retryHandler);
+                };
+                audio.addEventListener('playing', successHandler, { once: true });
+
+                // 设置链接来源为缓存
+                currentSourceType = 'cache';
+
+                // 如果是静默加载（用于恢复进度）
+                if (noPlay) {
+                    currentQuality = quality;
+                    setPlayerStatus('', false);
+                    updatePlayButton(false);
+                    if (window._resumeInfo && window._resumeInfo.time > 0) {
+                        audio.addEventListener('loadedmetadata', () => {
+                            audio.currentTime = window._resumeInfo.time;
+                            delete window._resumeInfo;
+                        }, { once: true });
+                    }
+                    return;
+                }
+
+                setPlayerStatus('正在加载缓存链接...', false);
+                if (!noPlay) {
+                    try {
+                        if (settings.enableCrossfade) {
+                            audio.volume = 0;
+                        } else {
+                            audio.volume = typeof currentVolume !== 'undefined' ? currentVolume : 1;
+                        }
+
+                        await audio.play();
+                        showSuccess('已命中缓存链接播放');
+
+                        if (settings.enableCrossfade) {
+                            fadeVolume(typeof currentVolume !== 'undefined' ? currentVolume : 1, 1000);
+                        }
+                    } catch (e) {
+                        console.error("[Player] Auto-play failed:", e);
+                        updatePlayButton(false);
+                    }
+                }
+                return; // 命中缓存
+            }
+        }
+
         const headers = { 'Content-Type': 'application/json' };
         if (typeof authToken !== 'undefined' && authToken) headers['x-user-token'] = authToken;
         if (typeof currentListData !== 'undefined' && currentListData && currentListData.username) headers['x-user-name'] = currentListData.username;
 
+        setPlayerStatus('正在从服务器获取播放地址...');
         const res = await fetch(`${API_BASE}/url`, {
             method: 'POST',
             headers,
@@ -1421,18 +1424,38 @@ async function playSong(song, index, forceQuality = null, noPlay = false, isRetr
         }
 
         if (!res.ok) {
-            // [Improvement] Try to get detailed error JSON from server
+            // [Improvement] Try to get detailed error
             let errorMsg = `HTTP ${res.status}`;
+            let result = {};
             try {
-                const errData = await res.json();
-                if (errData.error) errorMsg = errData.error;
+                result = await res.json();
+                if (result.error) errorMsg = result.error;
             } catch (e) { /* ignore JSON parse error */ }
+
+            // [New] 显示中间尝试记录 (失败分支)
+            if (result.attempts) {
+                showPlaybackAttempts(result.attempts);
+            }
             throw new Error(errorMsg);
         }
 
         const result = await res.json();
 
         if (result.url) {
+            // [New] 显示中间尝试记录 (成功分支)
+            if (result.attempts) {
+                showPlaybackAttempts(result.attempts);
+            }
+
+            // [New] 显示具体音源成功提示 (如果 result.sourceName 存在且未被 attempts 覆盖)
+            if (result.sourceName && (!result.attempts || !result.attempts.some(a => a.status === 'success' && a.name === result.sourceName))) {
+                showSuccess(`[${result.sourceName}] 成功获取链接`);
+            }
+            // [New] 显示中间产生的失败警告（例如部分音源重试失败但最终成功）
+            if (result.errorMsg) {
+                showError(result.errorMsg);
+            }
+
             let finalUrl = result.url;
 
             // ===== 写入缓存 =====
@@ -3390,6 +3413,12 @@ function startWordProgressUpdate(lineIndex, lineEl, lineData) {
     }
     if (lineDuration <= 0) lineDuration = 5000;
 
+    // 提前计算本行所有字的总演唱时长，用于翻译进度的精准映射
+    let totalWordsDuration = 0;
+    wordSpans.forEach(span => {
+        totalWordsDuration += parseInt(span.dataset.duration) || 0;
+    });
+
     function update() {
         // 如果当前播放行已改变，或音频暂停，停止动画
         if (currentLyricIndex !== lineIndex || audio.paused) {
@@ -3399,9 +3428,7 @@ function startWordProgressUpdate(lineIndex, lineEl, lineData) {
         const curTimeMs = audio.currentTime * 1000;
         const relativeTime = curTimeMs - lineStartTime;
 
-        // 1. 更新整行进度 (用于带有逐字数据的翻译/罗马音平滑扫过)
-        const lineProgress = Math.min(100, Math.max(0, (relativeTime / lineDuration) * 100));
-        lineEl.style.setProperty('--line-progress', `${lineProgress}%`);
+        let sungDuration = 0;
 
         // 2. 更新逐字进度
         wordSpans.forEach(span => {
@@ -3410,11 +3437,13 @@ function startWordProgressUpdate(lineIndex, lineEl, lineData) {
 
             if (relativeTime >= start + duration) {
                 // 已播放完
+                sungDuration += duration;
                 span.style.setProperty('--word-progress', '100%');
                 span.classList.add('passed');
                 span.classList.remove('playing');
             } else if (relativeTime >= start) {
                 // 正在播放中
+                sungDuration += (relativeTime - start);
                 const progress = Math.min(100, Math.max(0, ((relativeTime - start) / duration) * 100));
                 span.style.setProperty('--word-progress', `${progress}%`);
                 span.classList.add('playing');
@@ -3425,6 +3454,11 @@ function startWordProgressUpdate(lineIndex, lineEl, lineData) {
                 span.classList.remove('passed', 'playing');
             }
         });
+
+        // 1. 更新整行进度 (用于带有逐字数据的翻译/罗马音平滑扫过)
+        // 通过 实际已唱时长 / 总发声时长，实现翻译和原词进度严丝合缝对齐，消除"晚来早走"现象
+        const lineProgress = totalWordsDuration > 0 ? (sungDuration / totalWordsDuration) * 100 : Math.min(100, Math.max(0, (relativeTime / lineDuration) * 100));
+        lineEl.style.setProperty('--line-progress', `${lineProgress}%`);
 
         wordAnimationId = requestAnimationFrame(update);
     }
@@ -3642,7 +3676,7 @@ function renderLyric(lines, emptyMsg = '暂无歌词') {
 
         // Main lyric text
         const span = document.createElement('span');
-        span.className = 'font-lrc text-lg md:text-xl text-gray-500 transition-all block';
+        span.className = 'font-lrc text-lg md:text-xl text-gray-500 transition-all block w-fit mx-auto';
 
         if (line.words && line.words.length > 0) {
             div.classList.add('has-words');
@@ -3666,7 +3700,7 @@ function renderLyric(lines, emptyMsg = '暂无歌词') {
             line.extendedLyrics.forEach(extText => {
                 if (!extText) return;
                 const extSpan = document.createElement('span');
-                extSpan.className = 'extended text-sm md:text-base text-gray-400 mt-1 block';
+                extSpan.className = 'extended text-sm md:text-base text-gray-400 mt-1 block w-fit mx-auto';
                 extSpan.textContent = extText;
                 contentDiv.appendChild(extSpan);
             });
@@ -4623,10 +4657,13 @@ async function renderCustomSources() {
 
         container.innerHTML = '';
 
-        list.forEach(source => {
+        list.forEach((source, index) => {
             const div = document.createElement('div');
             // 设置界面使用稍紧凑的样式，模态框使用标准样式 (这里为了统一先用一样的，微调边距)
-            div.className = `bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all mb-3 relative group`;
+            div.className = `bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all mb-3 relative group flex items-start source-item`;
+            div.dataset.id = source.id;
+            div.dataset.enabled = source.enabled;
+            div.dataset.index = index;
 
             // 格式化支持的源
             let supportedBadges = '';
@@ -4672,7 +4709,10 @@ async function renderCustomSources() {
             }
 
             div.innerHTML = `
-            <div class="flex justify-between items-start">
+            <div class="flex items-center self-stretch cursor-grab custom-source-handle text-gray-300 hover:text-emerald-500 pr-3 -ml-2 transition-colors" title="拖拽排序">
+                <i class="fas fa-grip-vertical"></i>
+            </div>
+            <div class="flex justify-between items-start flex-1 min-w-0">
                 <div class="flex-1 pr-4 min-w-0">
                     <div class="flex items-center gap-2 mb-1 flex-wrap">
                         <div class="flex items-center gap-2 min-w-0 flex-1">
@@ -4719,6 +4759,66 @@ async function renderCustomSources() {
         `;
             container.appendChild(div);
         });
+
+        // Add Sortable
+        if (typeof Sortable !== 'undefined') {
+            Sortable.create(container, {
+                animation: 150,
+                handle: '.custom-source-handle',
+                ghostClass: 'opacity-50',
+                onEnd: async function (evt) {
+                    const items = Array.from(container.querySelectorAll('.source-item'));
+
+                    // Parse current state from DOM after drag
+                    const draggedItem = evt.item;
+                    const draggedId = draggedItem.dataset.id;
+                    const isEnabled = draggedItem.dataset.enabled === 'true';
+
+                    // Separate into enabled and disabled to enforce grouping
+                    let enabledIds = [];
+                    let disabledIds = [];
+
+                    items.forEach(el => {
+                        const id = el.dataset.id;
+                        const stateEnabled = el.dataset.enabled === 'true';
+
+                        // Enforce logic: an item keeps its enabled/disabled state, 
+                        // we just figure out its relative order within its group.
+                        if (stateEnabled) {
+                            enabledIds.push(id);
+                        } else {
+                            disabledIds.push(id);
+                        }
+                    });
+
+                    // Check if a swap occurred across boundaries causing a weird state?
+                    // Actually, the UI just re-arranged the divs. By separating them into enabledIds and disabledIds, 
+                    // we automatically force enabled to be before disabled.
+                    // If an enabled source was dragged to the disabled section, it will naturally be at the end of the enabledIds array (because it was placed after other enabled items).
+                    // Same vice versa.
+
+                    const finalOrderIds = [...enabledIds, ...disabledIds];
+
+                    try {
+                        const username = currentListData?.username || 'default';
+                        const response = await fetch('/api/custom-source/reorder', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ username, sourceIds: finalOrderIds })
+                        });
+
+                        if (!response.ok) throw new Error('Reorder failed');
+
+                        // Re-render to show the forcefully corrected order (enabled on top)
+                        renderCustomSources();
+                    } catch (error) {
+                        console.error('Reorder error:', error);
+                        showError('保存排序失败');
+                        renderCustomSources(); // Revert UI
+                    }
+                }
+            });
+        }
     });
 
     // Apply dynamic marquee checks after rendering source list
@@ -5627,6 +5727,24 @@ function showToast(type, message, duration = 3000) {
 function showSuccess(message) { showToast('success', message, 2000); }
 function showInfo(message) { showToast('info', message, 3000); }
 function showError(message) { showToast('error', message, 4000); }
+
+/**
+ * 分步展示播放尝试日志
+ * @param {Array} attempts - [{name, status, message}]
+ */
+function showPlaybackAttempts(attempts) {
+    if (!attempts || !attempts.length) return;
+    attempts.forEach((attempt, index) => {
+        setTimeout(() => {
+            const msg = `[${attempt.name}] ${attempt.message || (attempt.status === 'success' ? '解析成功' : '解析失败')}`;
+            if (attempt.status === 'success') {
+                showSuccess(msg);
+            } else {
+                showError(msg);
+            }
+        }, index * 300); // 间隔展示，避免瞬间堆叠
+    });
+}
 
 // ========================================
 // Sleep Timer Logic
