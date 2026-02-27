@@ -18,25 +18,25 @@
         }
     },
     {
-        "comment": "=== 版本更新 v1.6.0 ===",
-        "id": "update_v1_6_0",
+        "comment": "=== 版本更新 v1.6.1 ===",
+        "id": "update_v1_6_1",
         "status": "active",
         "type": "version",
         "logic": {
-            "target_version": "v1.6.0",
+            "target_version": "v1.6.1",
             "operator": "<",
             "interval_hours": 24
         },
         "ui": {
-            "title": "发现新版本 v1.6.0",
-            "date": "2026-02-26",
-            "message": "本次更新带来了以下变动：\n1. 🎶 歌单支持：增加了推荐歌单、排行榜及歌单搜索功能。\n2. 🔗 自定义导入：支持解析并导入网易云/QQ/酷狗等平台的外部歌单链接。\n3. 📋 播放队列：新增正在播放列表查看，支持队列跳转与管理。\n4. 🎨 界面优化：替换原生对话框为全新的拟物化自定义模态框。\n5. 🔧 播放增强：新增“失败自动下曲”逻辑，提升播放连贯性。",
-            "confirm_text": "去查看",
+            "title": "发现新版本 v1.6.1",
+            "date": "2026-02-27",
+            "message": "本次更新带来了以下修复与优化：\n1. 🎨 视觉重构：优化了确认框/输入框的显示风格，采用更稳重的纯色卡片设计。\n2. 🖼️ 跨域修复：解决了歌词卡片中由于 CORS 限制导致的封面图片无法显示的问题。\n3. 🚀 性能优化：引入智能图片加载代理，确保所有音源封面均可稳定展示并支持导出分享。",
+            "confirm_text": "我知道了",
             "cancel_text": "稍后提醒"
         },
         "action": {
             "type": "link",
-            "url": "https://github.com/XCQ0607/lxserver/releases/tag/v1.6.0"
+            "url": "https://github.com/XCQ0607/lxserver/releases/tag/v1.6.1"
         }
     }
 ]

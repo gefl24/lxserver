@@ -96,12 +96,38 @@
         return (window.settings && window.settings.lyricFontFamily) || '-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
     }
 
+    /**
+     * 加载图片 (支持跨域代理回退)
+     * @param {string} src 图片地址
+     * @returns {Promise<HTMLImageElement>}
+     */
     function loadImage(src) {
         return new Promise((res, rej) => {
             if (!src) { rej(new Error('no src')); return; }
-            const img = new Image(); img.crossOrigin = 'anonymous';
-            img.onload = () => res(img); img.onerror = () => rej(new Error('load failed'));
-            img.src = src;
+
+            const img = new Image();
+            img.crossOrigin = 'anonymous'; // 必须开启，否则无法导出 Canvas
+
+            img.onload = () => res(img);
+
+            img.onerror = () => {
+                // 如果直接加载失败（通常是 CORS 问题），尝试通过本地后端代理加载
+                console.log('[LyricCard] 图片加载失败，尝试通过代理加载:', src);
+                const proxyUrl = `/api/music/download?url=${encodeURIComponent(src)}&inline=1`;
+
+                const proxyImg = new Image();
+                proxyImg.crossOrigin = 'anonymous';
+                proxyImg.onload = () => res(proxyImg);
+                proxyImg.onerror = () => rej(new Error('图片加载失败 (代理加载也无法完成)'));
+                proxyImg.src = proxyUrl;
+            };
+
+            // 如果 src 是本地占位符或者已经是 base64，不需要代理
+            if (src.includes('logo.svg') || src.startsWith('data:')) {
+                img.src = src;
+            } else {
+                img.src = src;
+            }
         });
     }
 

@@ -6498,21 +6498,31 @@ function showInput(title, message, options = {}) {
         const modal = document.createElement('div');
         modal.className = "fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in";
         modal.innerHTML = `
-            <div class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300"></div>
-            <div class="t-bg-panel/90 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all animate-slide-up relative z-10 border border-white/20">
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"></div>
+            <div class="t-bg-panel rounded-xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all animate-slide-up relative z-10 border t-border-main">
+                <!-- Header -->
+                <div class="px-5 py-4 border-b border-emerald-100/50 flex justify-between items-center bg-emerald-50/50">
+                    <h3 class="text-sm font-bold t-text-main">${title}</h3>
+                    <button id="modal-close-x" class="t-text-muted hover:text-emerald-500 transition-colors">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+                <!-- Body -->
                 <div class="p-6">
-                    <div class="flex items-center gap-3 mb-4">
+                    <div class="flex items-start gap-4 mb-4">
                         <div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0">
                             <i class="fas fa-edit text-lg"></i>
                         </div>
-                        <h3 class="text-lg font-bold t-text-main">${title}</h3>
+                        <div class="flex-1">
+                            <p class="text-sm t-text-muted leading-relaxed mb-4">${message}</p>
+                            <input type="text" id="modal-input" 
+                                class="w-full px-4 py-2.5 t-bg-main border t-border-main rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-sm"
+                                placeholder="${placeholder}" value="${defaultValue}">
+                        </div>
                     </div>
-                    <p class="text-sm t-text-muted leading-relaxed pl-1 mb-4">${message}</p>
-                    <input type="text" id="modal-input" 
-                        class="w-full px-4 py-3 t-bg-main border t-border-main rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-sm"
-                        placeholder="${placeholder}" value="${defaultValue}">
                 </div>
-                <div class="p-4 t-bg-main/50 flex gap-3 flex-row-reverse">
+                <!-- Footer -->
+                <div class="p-4 t-bg-main/50 border-t t-border-main/50 flex gap-3 flex-row-reverse">
                     <button id="confirm-ok" class="flex-1 py-2.5 text-sm font-bold text-white ${confirmColor} hover:opacity-90 rounded-xl shadow-lg transition-all active:scale-95">
                         ${confirmText}
                     </button>
@@ -6543,6 +6553,7 @@ function showInput(title, message, options = {}) {
 
         modal.querySelector('#confirm-ok').onclick = () => close(input.value.trim() || null);
         modal.querySelector('#confirm-cancel').onclick = () => close(null);
+        modal.querySelector('#modal-close-x').onclick = () => close(null);
         modal.querySelector('div:first-child').onclick = () => close(null);
 
         input.onkeydown = (e) => {
@@ -6551,6 +6562,7 @@ function showInput(title, message, options = {}) {
         };
     });
 }
+
 
 //确认弹窗
 function showSelect(title, message, options = {}) {
@@ -6567,18 +6579,28 @@ function showSelect(title, message, options = {}) {
         const modal = document.createElement('div');
         modal.className = "fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in";
         modal.innerHTML = `
-            <div class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300"></div>
-            <div class="t-bg-panel/90 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all animate-slide-up relative z-10 border border-white/20">
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"></div>
+            <div class="t-bg-panel rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all animate-slide-up relative z-10 border t-border-main">
+                <!-- Header -->
+                <div class="px-5 py-4 border-b border-emerald-100/50 flex justify-between items-center bg-emerald-50/50">
+                    <h3 class="text-sm font-bold t-text-main">${title}</h3>
+                    <button id="modal-close-x" class="t-text-muted hover:text-emerald-500 transition-colors">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+                <!-- Body -->
                 <div class="p-6">
-                    <div class="flex items-center gap-3 mb-3">
+                    <div class="flex items-start gap-4">
                         <div class="w-10 h-10 rounded-full ${danger ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-500'} flex items-center justify-center shrink-0">
                             <i class="fas ${danger ? 'fa-exclamation-triangle' : 'fa-question-circle'} text-lg"></i>
                         </div>
-                        <h3 class="text-lg font-bold t-text-main">${title}</h3>
+                        <div class="flex-1">
+                            <p class="text-sm t-text-muted leading-relaxed">${message}</p>
+                        </div>
                     </div>
-                    <p class="text-sm t-text-muted leading-relaxed pl-1">${message}</p>
                 </div>
-                <div class="p-4 t-bg-main/50 flex gap-3 flex-row-reverse">
+                <!-- Footer -->
+                <div class="p-4 t-bg-main/50 border-t t-border-main/50 flex gap-3 flex-row-reverse">
                     <button id="confirm-ok" class="flex-1 py-2.5 text-sm font-bold text-white ${btnColor} rounded-xl shadow-lg transition-all active:scale-95">
                         ${confirmText}
                     </button>
@@ -6605,6 +6627,7 @@ function showSelect(title, message, options = {}) {
 
         modal.querySelector('#confirm-ok').onclick = () => close(true);
         modal.querySelector('#confirm-cancel').onclick = () => close(false);
+        modal.querySelector('#modal-close-x').onclick = () => close(false);
         modal.querySelector('div:first-child').onclick = () => close(false);
     });
 }
