@@ -8,12 +8,9 @@ export default {
   tipSearchBySong(str) {
     this.cancelTipSearch()
     this.requestObj = createHttpFetch(`https://app.u.nf.migu.cn/pc/resource/content/tone_search_suggest/v1.0?text=${encodeURIComponent(str)}`)
-    return this.requestObj.then(body => {
-      if (body.code === '000000' && body.data) {
-        return body.data.songList || []
-      }
-      return []
-    })
+    return this.requestObj.then(data => {
+      return data.songList || []
+    }).catch(() => [])
   },
   handleResult(rawData) {
     if (!rawData) return []
