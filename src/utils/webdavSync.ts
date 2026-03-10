@@ -116,9 +116,10 @@ class WebDAVSync extends EventEmitter {
         return files
     }
 
-    private async getChangedFiles(): Promise<string[]> {
+    private async getChangedFiles(): Promise<{ changed: string[], deleted: string[] }> {
         const currentFiles = await this.scanFiles()
         const changed: string[] = []
+        const deleted: string[] = []
 
         // 检查新增和修改的文件
         for (const [file, hash] of currentFiles) {
@@ -127,8 +128,38 @@ class WebDAVSync extends EventEmitter {
             }
         }
 
+        // 检查已删除的文件
+        for (const [file] of this.filesHash) {
+            if (!currentFiles.has(file)) {
+                deleted.push(file)
+            }
+        }
+
         this.filesHash = currentFiles
-        return changed
+        return { changed, deleted }
+    }
+
+    async deleteRemoteFile(relativePath: string): Promise<boolean> {
+        if (!this.client) await this.initClient()
+        if (!this.client) return false
+
+        try {
+            const remotePath = `/lx-sync/${relativePath.replace(/\\/g, '/')}`
+            await this.client.deleteFile(remotePath)
+            this.addLog({
+                timestamp: Date.now(),
+                type: 'upload', // 借用 upload 类型表示同步操作
+                file: relativePath,
+                status: 'success',
+                message: 'Remote file deleted'
+            })
+            return true
+        } catch (err: any) {
+            // 如果远程文件已经不存在，也认为成功
+            if (err.status === 404) return true
+            console.error(`Failed to delete remote file ${relativePath}:`, err.message)
+            return false
+        }
     }
 
     async uploadFile(relativePath: string): Promise<boolean> {
@@ -312,8 +343,8 @@ class WebDAVSync extends EventEmitter {
         try {
             // 检查是否有文件变化
             if (!force) {
-                const changed = await this.getChangedFiles()
-                if (changed.length === 0) {
+                const { changed, deleted } = await this.getChangedFiles()
+                if (changed.length === 0 && deleted.length === 0) {
                     console.log('No changes detected, skipping backup')
                     return true
                 }
@@ -516,12 +547,21 @@ class WebDAVSync extends EventEmitter {
     }
 
     async syncChangedFiles() {
-        const changed = await this.getChangedFiles()
-        if (changed.length === 0) return
+        const { changed, deleted } = await this.getChangedFiles()
+        if (changed.length === 0 && deleted.length === 0) return
 
-        console.log(`Syncing ${changed.length} changed files...`)
-        for (const file of changed) {
-            await this.uploadFile(file)
+        if (changed.length > 0) {
+            console.log(`Syncing ${changed.length} changed files...`)
+            for (const file of changed) {
+                await this.uploadFile(file)
+            }
+        }
+
+        if (deleted.length > 0) {
+            console.log(`Deleting ${deleted.length} remote files...`)
+            for (const file of deleted) {
+                await this.deleteRemoteFile(file)
+            }
         }
     }
 
