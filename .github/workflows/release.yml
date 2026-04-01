@@ -188,10 +188,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install and Build
+        run: |
+          npm ci
+          npm run build
+          # 清理开发依赖，仅保留生产运行环境
+          rm -rf node_modules
+          npm ci --omit=dev
+
       - name: Build and Zip Server
         run: |
           mkdir -p release/lx-music-sync-server
-          cp -r server public scripts index.js package.json release/lx-music-sync-server/
+          cp -r server node_modules public scripts index.js package.json release/lx-music-sync-server/
           [ -f "config.js" ] && cp config.js release/lx-music-sync-server/
           cd release
           zip -r lx-music-sync-server-${{ needs.init.outputs.VERSION }}-server.zip lx-music-sync-server

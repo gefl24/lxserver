@@ -22,20 +22,6 @@
 [Documentation](https://xcq0607.github.io/lxserver/) | [SyncServer](md/lxserver_EN.md) | [Changelog](changelog.md) | [中文版](README.md)
 
 ---
-
-## 🖥️ Desktop Client (New!)
-
-You can now run LX Music Sync Server more conveniently via our Desktop Client, available for Windows, macOS, and Linux.
-
-- **📦 Download Latest**: [GitHub Releases](https://github.com/XCQ0607/lxserver/releases/latest)
-- **✨ Key Advantages**:
-    - **Single Window**: Integrated management dashboard and Web player for a unified experience.
-    - **System Tray**: Minimizes to tray on close, ensuring the sync service stays active in the background.
-    - **Port Conflict Resolution**: Automatically detects and switches ports if the default is in use.
-    - **Setup Wizard**: Guided data path selection on first launch, supports **Portable Mode**.
-    - **Multi-Arch Support**: Builds for Windows (Universal/x64/ARM64), macOS (Universal), and Linux (deb/AppImage).
-
-
 This project features a powerful built-in **Web Player**, allowing you to enjoy music anywhere in your browser. It also serves as an enhanced [LX Music Data Sync Server](md/lxserver_EN.md).
 
 ## ✨ Web Player Key Features
@@ -122,20 +108,20 @@ The Web Player is deeply optimized for mobile devices, providing a native App-li
 
 Built with **Node.js**, supporting multiple deployment methods.
 
-### 部署执行方案与最佳实践
 
-### 方案一：使用桌面客户端（推荐级别：极高 ✨）
+### Option 1: Desktop Client
 
-对于桌面用户，我们强烈推荐使用基于 Electron 的**桌面客户端**。它集成了服务器管理与播放器，且具备系统托盘常驻功能。
+You can now run LX Music Sync Server more conveniently via our Desktop Client, available for Windows, macOS, and Linux.
 
-1. **前往下载**: [GitHub Releases](https://github.com/XCQ0607/lxserver/releases/latest)
-2. **选择版本**:
-   - **Windows**: 下载 `Universal.exe` (全架构合一) 或 `portable.exe` (绿色版)。
-   - **macOS**: 下载 `universal.dmg` (支持 Intel/M1/M2)。
-   - **Linux**: 提供 `.deb` (Debian/Ubuntu) 和 `.AppImage` 格式。
-3. **初始化**: 首次运行将引导你选择数据存储位置，随后服务将自动在后台启动并在系统托盘可见。
+- **📦 Download Latest**: [GitHub Releases](https://github.com/XCQ0607/lxserver/releases/latest)
+- **✨ Key Advantages**:
+    - **Single Window**: Integrated management dashboard and Web player for a unified experience.
+    - **System Tray**: Minimizes to tray on close, ensuring the sync service stays active in the background.
+    - **Port Conflict Resolution**: Automatically detects and switches ports if the default is in use.
+    - **Setup Wizard**: Guided data path selection on first launch, supports **Portable Mode**.
+    - **Multi-Arch Support**: Builds for Windows (x64/x86/ARM64 Setup & Portable), macOS (Intel x64 & Apple Silicon arm64), and Linux (amd64/arm64/armv7l deb/AppImage).
 
-### 方案二：基于 Docker 引擎的容器化部署（推荐级别：高）
+### Option 2: Containerized Deployment via Docker
 
 ```bash
 docker run -d \
@@ -147,7 +133,7 @@ docker run -d \
   ghcr.io/xcq0607/lxserver:latest
 ```
 
-### Method 2: Manual Run (Git Clone)
+### Option 3: Manual Run (Git Clone)
 
 ```bash
 # 1. Clone project
@@ -160,7 +146,7 @@ npm ci && npm run build
 npm start
 ```
 
-### Method 3: Using Release Build
+### Option 4: Using Release Build
 
 1. Download the archive from GitHub Releases.
 2. Extract and run `npm install --production`.
