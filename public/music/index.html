@@ -1281,11 +1281,10 @@
 
                 <!-- Leaderboard View -->
                 <div id="view-leaderboard"
-                    class="absolute inset-0 flex flex-col hidden opacity-0 transition-all duration-300 overflow-hidden">
+                    class="absolute inset-0 flex flex-col px-2 pt-2 md:px-6 md:pt-6 pb-44 md:pb-32 hidden opacity-0 transition-all duration-300 overflow-hidden">
 
                     <!-- 顶部工具栏：增强手机端适配 -->
-                    <div
-                        class="flex-shrink-0 flex items-center gap-2 md:gap-4 px-3 md:px-6 py-3 border-b t-border-main t-bg-panel">
+                    <div class="flex-shrink-0 flex items-center gap-2 md:gap-4 mb-4 md:mb-6">
                         <!-- 手机端显示：切换榜单列表按钮 -->
                         <button onclick="toggleLbSidebar()"
                             class="md:hidden p-2 t-text-muted hover:t-bg-main rounded-lg transition-colors"
@@ -1319,7 +1318,8 @@
                     </div>
 
                     <!-- 主内容区：增加响应式侧边栏遮罩容器 -->
-                    <div class="flex-1 flex overflow-hidden relative">
+                    <div
+                        class="flex-1 flex overflow-hidden relative t-bg-panel rounded-2xl shadow-sm border t-border-main">
 
                         <!-- 左侧：榜单列表（手机端默认隐藏，通过 toggleLbSidebar 切换） -->
                         <div id="lb-sidebar"
@@ -2027,6 +2027,12 @@
                                         class="w-full py-2.5 px-4 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white font-bold rounded-lg transition-all duration-300 border border-red-100 flex items-center justify-center gap-3 text-center mt-1">
                                         <i class="fas fa-undo-alt flex-shrink-0"></i>
                                         <span class="leading-tight">重置所有设置 (Reset Settings)</span>
+                                    </button>
+
+                                    <button onclick="location.href='/'"
+                                        class="w-full py-2.5 px-4 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white font-bold rounded-lg transition-all duration-300 border border-emerald-100 flex items-center justify-center gap-3 text-center mt-3">
+                                        <i class="fas fa-tasks flex-shrink-0"></i>
+                                        <span class="leading-tight">后台管理 (Backend Management)</span>
                                     </button>
                                 </div>
                             </div>

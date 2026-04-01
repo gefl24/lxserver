@@ -20,7 +20,18 @@
 
 ## 部署执行方案与最佳实践
 
-### 方案一：基于 Docker 引擎的容器化部署（推荐级别：高）
+### 方案一：使用桌面客户端
+
+对于桌面用户，我们强烈推荐使用基于 Electron 的**桌面客户端**。它集成了服务器管理与播放器，且具备系统托盘常驻功能。
+
+1. **前往下载**: [GitHub Releases](https://github.com/XCQ0607/lxserver/releases/latest)
+2. **选择版本**:
+   - **Windows**: 下载 `Universal.exe` (全架构合一) 或 `portable.exe` (绿色版)。
+   - **macOS**: 下载 `universal.dmg` (支持 Intel/M1/M2)。
+   - **Linux**: 提供 `.deb` (Debian/Ubuntu) 和 `.AppImage` 格式。
+3. **初始化**: 首次运行将引导你选择数据存储位置，随后服务将自动在后台启动并在系统托盘可见。
+
+### 方案二：基于 Docker 引擎的容器化部署
 
 我们提供了适用于各种架构平台的预构建稳定镜像版本。执行以下单行指令即可启动守护进程模型内的容器服务实例：
 
@@ -98,12 +109,12 @@ server {
 
     location / {
         proxy_pass http://127.0.0.1:9527;
-      
+    
         # 定义 Header 头传递策略以确保 Node 层可取到客户端外网层 IP
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      
+    
         # 补全长连接升级特性定义（对内部的同步通信套接字服务必要条件）
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";

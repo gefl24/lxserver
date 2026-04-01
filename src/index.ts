@@ -76,7 +76,7 @@ global.lx = {
   dataPath,
   userPath: path.join(dataPath, File.userDir),
   config: defaultConfig,
-  staticPath: path.join(process.cwd(), 'public'),
+  staticPath: process.env.STATIC_PATH ?? path.join(process.cwd(), 'public'),
   saveConfig: saveConfigToFile,
 }
 

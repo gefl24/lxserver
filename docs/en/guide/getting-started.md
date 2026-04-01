@@ -20,7 +20,18 @@ Before starting this service project, please ensure that the host system (or vir
 
 ## Deployment Execution Plan and Best Practices
 
-### Option 1: Containerized Deployment Based on Docker Engine (Recommendation: High)
+### Option 1: Using Desktop Client
+
+For desktop users, we strongly recommend using the **Desktop Client** based on Electron. It integrates the server management and player, featuring system tray support.
+
+1. **Download**: [GitHub Releases](https://github.com/XCQ0607/lxserver/releases/latest)
+2. **Choose Version**:
+   - **Windows**: Download `Universal.exe` (All-in-one) or `portable.exe` (Portable version).
+   - **macOS**: Download `universal.dmg` (Supports Intel/M1/M2).
+   - **Linux**: `.deb` (Debian/Ubuntu) and `.AppImage` formats available.
+3. **Initialization**: The first launch will guide you to select a data storage location, then the service will start in the background and be visible in the system tray.
+
+### Option 2: Containerized Deployment Based on Docker Engine 
 
 We provide pre-built stable image versions for various architectural platforms. Execute the following single-line command to start the container service instance within the daemon process model:
 
@@ -98,12 +109,12 @@ server {
 
     location / {
         proxy_pass http://127.0.0.1:9527;
-      
+    
         # Define the Header transmission policy to ensure that the Node layer can get the client's public network layer IP
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      
+    
         # Complement the long-connection upgrade feature definition (necessary condition for internal synchronization communication socket services)
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -117,9 +128,9 @@ server {
 
 After the service instance registration and scheduling are completed, and the traffic tunnel is established, administrators can check the connectivity status of the two sub-service systems in the browser respectively:
 
-| Module System Identifier | Deployment Application Node Level | Default Domain Check | Core Application Capabilities and Infrastructure |
-| ---------------------------------- | ------------------ | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| **Basic Operation Monitoring and Sync Server** | `/` (Domain Root) | Requires default key: `123456` | Perform account role control authorization, review connection endpoint survival status, and perform global WebDAV off-site backup scheduling configuration reset. |
-| **Rich Client Web Streaming Console** | `/music` | Adjustable (depends on whether the administrator has configured the Monroe protection environment variable to forcibly enable the anti-hotlinking security key) | Provides a multi-stack music information stream convergence point checking engine and completes the audio-visual business rendering logic of the end-user interface. |
+| Module System Identifier                             | Deployment Application Node Level | Default Domain Check                                                                                                                                            | Core Application Capabilities and Infrastructure                                                                                                                     |
+| ---------------------------------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Basic Operation Monitoring and Sync Server** | `/` (Domain Root)               | Requires default key:`123456`                                                                                                                                 | Perform account role control authorization, review connection endpoint survival status, and perform global WebDAV off-site backup scheduling configuration reset.    |
+| **Rich Client Web Streaming Console**          | `/music`                        | Adjustable (depends on whether the administrator has configured the Monroe protection environment variable to forcibly enable the anti-hotlinking security key) | Provides a multi-stack music information stream convergence point checking engine and completes the audio-visual business rendering logic of the end-user interface. |
 
 For more advance details on implementing silent import of underlying variables in the early lifecycle of instantiation, and configuration hierarchy rewriting, please move to read "[Configuration Engine and Environment Variable Injection Guide](./configuration.md)".

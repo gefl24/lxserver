@@ -42,7 +42,7 @@ This module involves monitoring the status of connected clients and isolation sp
 | `USER_ENABLE_PATH` | `true` | Boolean | **Account-exclusive storage sandbox isolation system (Critical)**. After this state is started, the underlying data system will partition multiple discrete and parallel volumes according to active users in the `/data` directory. Ensure that preference files of different distribution devices and multi-users do not have data unauthorized access. |
 | `USER_ENABLE_ROOT` | `false` | Boolean | **Root directory flattening access override parameter**. When `true`, the above multi-user sandbox volume partitioning operation will become invalid, and data reading and writing will directly pierce and write into the system register in a reduced-dimension manner. |
 
-### III. WebDAV Integrated Online Automated Cloud Disaster Recovery Configuration
+### III. WebDAV Configuration
 
 The underlying periodic polling asynchronous daemon of the service will only be fully awakened if the following environment variable group is authorized (especially the `WEBDAV_URL` link effectively takes effect):
 

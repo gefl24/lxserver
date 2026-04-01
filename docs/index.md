@@ -25,6 +25,9 @@ features:
     details: 在线控制台可视化管理设备状态、用户数据，提供完备的数据控制权及系统配置管理。
   - title: 一键式多端连接
     details: 通过 Docker 或简单命令行即可部署，并自持 WebDAV 增量云备份。
+  - title: 全平台桌面支持
+    details: 提供针对 Win/Mac/Linux 的桌面客户端，支持系统托盘常驻、自动避让端口及便携模式运行。
+
 ---
 
 <style>

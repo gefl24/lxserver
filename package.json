@@ -1,6 +1,6 @@
 {
   "name": "lx-music-sync-server",
-  "version": "2.1.2",
+  "version": "1.8.1",
   "private": true,
   "scripts": {
     "prebuild": "node scripts/update-build-hash.js",
@@ -10,7 +10,9 @@
     "predev": "node scripts/update-build-hash.js",
     "dev": "nodemon",
     "prd": "pm2 start ecosystem.config.js --env production",
-    "publish": "node publish"
+    "publish": "node publish",
+    "electron:build": "npm run build",
+    "electron:dist": "npm run electron:build && electron-builder"
   },
   "engines": {
     "node": ">= 16",
@@ -18,17 +20,17 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lyswhut/lx-music-sync-server.git"
+    "url": "git+https://github.com/XCQ0607/lxserver.git"
   },
   "author": {
-    "name": "lyswhut",
-    "email": "lyswhut@qq.com"
+    "name": "XCQ",
+    "email": "2406498704@qq.com"
   },
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/lyswhut/lx-music-sync-server/issues"
+    "url": "https://github.com/XCQ0607/lxserver/issues"
   },
-  "homepage": "https://github.com/lyswhut/lx-music-sync-server#readme",
+  "homepage": "https://github.com/XCQ0607/lxserver#readme",
   "dependencies": {
     "@foobar404/wave": "^2.0.5",
     "@types/formidable": "^3.4.6",
@@ -58,12 +60,16 @@
     "@types/ws": "8.5.4",
     "chalk": "^4.1.2",
     "changelog-parser": "^3.0.1",
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3",
     "eslint-config-standard-with-typescript": "^39.1.1",
     "nodemon": "^3.0.1",
     "rimraf": "^5.0.5",
-    "ts-node": "^10.9.1",
+    "sharp": "^0.33.4",
+    "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.8",
     "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.2.2"
   },
   "nodemonConfig": {
@@ -73,6 +79,6 @@
       "logs/",
       "config.js"
     ],
-    "exec": "node -r ts-node/register -r tsconfig-paths/register ./src/index.ts"
+    "exec": "npx tsx ./src/index.ts"
   }
 }

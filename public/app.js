@@ -324,7 +324,7 @@ class App {
         if (window.LxNotification && window.LxNotification.checkUpdates) {
             window.LxNotification.checkUpdates(true);
         } else {
-            alert('通知服务未就绪，请稍后重试');
+            showInfo('通知服务未就绪，请稍后重试');
         }
     }
 
@@ -402,9 +402,9 @@ class App {
                 body: JSON.stringify({ names, deleteData })
             });
             this.loadUsers();
-            alert('批量删除成功');
+            showSuccess('批量删除成功');
         } catch (err) {
-            alert('删除失败: ' + err.message);
+            showError('删除失败: ' + err.message);
         }
     }
 
@@ -579,7 +579,7 @@ class App {
                 this.loadUsers();
                 this.loadDashboard();
             } catch (err) {
-                alert('添加用户失败: ' + err.message);
+                showError('添加用户失败: ' + err.message);
             }
         });
     }
@@ -611,7 +611,7 @@ class App {
     async saveNewPassword() {
         const newPassword = document.getElementById('edit-password-input').value;
         if (!newPassword) {
-            alert('请填写新密码');
+            showInfo('请填写新密码');
             return;
         }
 
@@ -626,9 +626,9 @@ class App {
 
             document.getElementById('edit-password-modal').classList.add('hidden');
             this.loadUsers();
-            alert('密码修改成功');
+            showSuccess('密码修改成功');
         } catch (err) {
-            alert('修改失败: ' + err.message);
+            showError('修改失败: ' + err.message);
         }
     }
 
@@ -649,7 +649,7 @@ class App {
             this.loadUsers();
             this.loadDashboard();
         } catch (err) {
-            alert('删除用户失败: ' + err.message);
+            showError('删除用户失败: ' + err.message);
         }
     }
 
@@ -742,6 +742,8 @@ class App {
             this.renderPlaylists();
         } catch (err) {
             document.getElementById('data-content').innerHTML = '<p style="color: var(--accent-error); padding: 2rem; text-align: center;">加载数据失败</p>';
+        } finally {
+            applyMarqueeChecks();
         }
     }
 
@@ -900,7 +902,7 @@ class App {
         const playlist = this.currentUserData?.data?.userList?.[index];
         if (!playlist) return;
 
-        if (!confirm(`确定要删除歌单"${playlist.name}"吗？\n此操作将删除歌单及其中的所有歌曲！`)) return;
+        if (!(await showSelect('删除歌单', `确定要删除歌单 "${playlist.name}" 吗？\n此操作将删除歌单及其中的所有歌曲！`, { danger: true }))) return;
 
         try {
             await this.request('/api/data/delete-playlist', {
@@ -911,10 +913,10 @@ class App {
                 })
             });
 
-            alert('删除成功！');
+            showSuccess('删除成功！');
             this.loadUserData();
         } catch (err) {
-            alert('删除失败: ' + err.message);
+            showError('删除失败: ' + err.message);
         }
     }
 
@@ -940,7 +942,7 @@ class App {
 
         if (!song) return;
 
-        if (!confirm(`确定要从"${playlist.name}"中删除歌曲"${song.name}"吗？`)) return;
+        if (!(await showSelect('删除歌曲', `确定要从 "${playlist.name}" 中删除歌曲 "${song.name}" 吗？`, { danger: true }))) return;
 
         try {
             await this.request('/api/data/delete-song', {
@@ -952,7 +954,7 @@ class App {
                 })
             });
 
-            alert('删除成功！');
+            showSuccess('删除成功！');
             // 重新加载并显示当前列表
             await this.loadUserData();
             if (isSystemList) {
@@ -961,7 +963,7 @@ class App {
                 this.viewPlaylistDetails(playlistIndexOrType);
             }
         } catch (err) {
-            alert('删除失败: ' + err.message);
+            showError('删除失败: ' + err.message);
         }
     }
 
@@ -1034,12 +1036,11 @@ class App {
         document.getElementById('data-content').innerHTML = content;
     }
 
-    // 编辑歌单名称
     async editPlaylistName(index) {
         const playlist = this.currentUserData?.data?.userList?.[index];
         if (!playlist) return;
 
-        const newName = prompt('请输入新的歌单名称:', playlist.name);
+        const newName = await showInput('编辑歌单名称', '请输入新的歌单名称:', { defaultValue: playlist.name });
         if (!newName || newName === playlist.name) return;
 
         try {
@@ -1052,11 +1053,11 @@ class App {
                 })
             });
 
-            alert('重命名成功！');
+            showSuccess('重命名成功！');
             await this.loadUserData();
             this.viewPlaylistDetails(index);
         } catch (err) {
-            alert('重命名失败: ' + err.message);
+            showError('重命名失败: ' + err.message);
         }
     }
 
@@ -1120,7 +1121,7 @@ class App {
         const playlist = this.currentUserData?.data?.userList?.[playlistIndex];
         if (!playlist) return;
 
-        if (!confirm(`确定要删除选中的 ${checkboxes.length} 首歌曲吗？`)) return;
+        if (!(await showSelect('批量删除', `确定要删除选中的 ${checkboxes.length} 首歌曲吗？`, { danger: true }))) return;
 
         try {
             // 获取选中歌曲的索引（需要从大到小排序，避免删除时索引变化）
@@ -1137,11 +1138,11 @@ class App {
                 })
             });
 
-            alert('批量删除成功！');
+            showSuccess('批量删除成功！');
             await this.loadUserData();
             this.viewPlaylistDetails(playlistIndex);
         } catch (err) {
-            alert('批量删除失败: ' + err.message);
+            showError('批量删除失败: ' + err.message);
         }
     }
 
@@ -1383,12 +1384,12 @@ class App {
             }
 
             if (res.warning) {
-                alert('配置保存成功！\n\n⚠️ 警告：' + res.warning);
+                showInfo('配置保存成功！\n\n⚠️ 警告：' + res.warning);
             } else {
-                alert('配置保存成功！');
+                showSuccess('配置保存成功！');
             }
         } catch (err) {
-            alert('配置保存失败: ' + err.message);
+            showError('配置保存失败: ' + err.message);
         }
     }
 
@@ -1468,17 +1469,17 @@ class App {
         try {
             const result = await this.request('/api/webdav/test', { method: 'POST' });
             if (result.success) {
-                alert('✅ WebDAV连接成功！\n' + result.message);
+                showSuccess('✅ WebDAV连接成功！\n' + result.message);
             } else {
-                alert('❌ WebDAV连接失败\n' + result.message);
+                showError('❌ WebDAV连接失败\n' + result.message);
             }
         } catch (err) {
-            alert('❌ 连接失败: ' + err.message);
+            showError('❌ 连接失败: ' + err.message);
         }
     }
 
     async backupToWebDAV() {
-        if (!confirm('确定要创建全量备份并上传到WebDAV吗？')) return;
+        if (!(await showSelect('WebDAV 备份', '确定要创建全量备份并上传到 WebDAV 吗？'))) return;
 
         const statusEl = document.getElementById('sync-status-content');
         statusEl.innerHTML = '<p style="color: var(--accent-warning);">正在备份...</p>';
@@ -1503,7 +1504,7 @@ class App {
     }
 
     async restoreFromWebDAV() {
-        if (!confirm('⚠️ 警告：从云端恢复将覆盖本地所有数据！\n\n确定要继续吗？')) return;
+        if (!(await showSelect('WebDAV 恢复', '⚠️ 警告：从云端恢复将覆盖本地所有数据！\n\n确定要继续吗？', { danger: true }))) return;
 
         const statusEl = document.getElementById('sync-status-content');
         statusEl.innerHTML = '<p style="color: var(--accent-warning);">正在从云端恢复数据...</p>';
@@ -1522,7 +1523,7 @@ class App {
     }
 
     async syncFilesToWebDAV() {
-        if (!confirm('确定要强制同步所有文件到WebDAV吗？')) return;
+        if (!(await showSelect('同步文件', '确定要强制同步所有文件到 WebDAV 吗？'))) return;
 
         const statusEl = document.getElementById('sync-status-content');
         statusEl.innerHTML = '<p style="color: var(--accent-warning);">正在同步文件...</p>';
@@ -1619,8 +1620,8 @@ class App {
         return `
             <div class="song-col-name">
                 ${coverHtml}
-                <div class="song-info-wrapper">
-                    <span class="song-title-text" title="${this.escapeHtml(song.name)}">${this.escapeHtml(song.name || '未知歌曲')}</span>
+                <div class="song-info-wrapper min-w-0">
+                    <span class="song-title-text dynamic-marquee truncate" title="${this.escapeHtml(song.name)}">${this.escapeHtml(song.name || '未知歌曲')}</span>
                     ${this.renderSongTags(song)}
                 </div>
             </div>
@@ -1822,7 +1823,7 @@ class App {
     }
 
     async createNewFile() {
-        const filename = prompt('请输入文件名：');
+        const filename = await showInput('创建文件', '请输入文件名：');
         if (!filename) return;
 
         const path = this.currentPath ? `${this.currentPath}/${filename}` : filename;
@@ -1833,13 +1834,14 @@ class App {
                 body: JSON.stringify({ path, content: '', isDirectory: false })
             });
             this.loadFiles(this.currentPath);
+            showSuccess('文件创建成功');
         } catch (err) {
-            alert('创建文件失败: ' + err.message);
+            showError('创建文件失败: ' + err.message);
         }
     }
 
     async createNewFolder() {
-        const foldername = prompt('请输入文件夹名：');
+        const foldername = await showInput('创建文件夹', '请输入文件夹名：');
         if (!foldername) return;
 
         const path = this.currentPath ? `${this.currentPath}/${foldername}` : foldername;
@@ -1850,14 +1852,15 @@ class App {
                 body: JSON.stringify({ path, isDirectory: true })
             });
             this.loadFiles(this.currentPath);
+            showSuccess('文件夹创建成功');
         } catch (err) {
-            alert('创建文件夹失败: ' + err.message);
+            showError('创建文件夹失败: ' + err.message);
         }
     }
 
     async editFile(filePath) {
-        // 简单的编辑：使用 prompt
-        const newContent = prompt('编辑文件内容（简易编辑器）：\n\n提示：输入新内容后点击确定');
+        // 简单的编辑：使用 showInput
+        const newContent = await showInput('编辑文件', '编辑文件内容（简易编辑器）：\n\n提示：输入新内容后点击确定', { defaultValue: '' });
         if (newContent === null) return;
 
         try {
@@ -1865,14 +1868,14 @@ class App {
                 method: 'PUT',
                 body: JSON.stringify({ path: filePath, content: newContent })
             });
-            alert('保存成功！');
+            showSuccess('保存成功！');
         } catch (err) {
-            alert('保存失败: ' + err.message);
+            showError('保存失败: ' + err.message);
         }
     }
 
     viewFile(filePath) {
-        alert('文件查看功能：' + filePath + '\n\n可以通过下载按钮下载文件后查看');
+        showInfo('文件查看功能：' + filePath + '\n\n可以通过下载按钮下载文件后查看');
     }
 
     async downloadFile(filePath) {
@@ -1885,7 +1888,7 @@ class App {
 
     async deleteFile(filePath, isDirectory) {
         const type = isDirectory ? '文件夹' : '文件';
-        if (!confirm(`确定要删除${type} "${filePath}" 吗？\n\n${isDirectory ? '⚠️ 文件夹内的所有内容也会被删除！' : ''}`)) return;
+        if (!(await showSelect('删除文件', `确定要删除${type} "${filePath}" 吗？\n\n${isDirectory ? '⚠️ 文件夹内的所有内容也会被删除！' : ''}`, { danger: true }))) return;
 
         try {
             await this.request('/api/files', {
@@ -1893,8 +1896,9 @@ class App {
                 body: JSON.stringify({ path: filePath })
             });
             this.loadFiles(this.currentPath);
+            showSuccess('删除成功');
         } catch (err) {
-            alert('删除失败: ' + err.message);
+            showError('删除失败: ' + err.message);
         }
     }
 
@@ -1931,6 +1935,12 @@ class App {
         document.getElementById('restore-webdav-btn')?.addEventListener('click', () => this.restoreFromWebDAV());
         document.getElementById('sync-files-btn')?.addEventListener('click', () => this.syncFilesToWebDAV());
         document.getElementById('refresh-sync-logs-btn')?.addEventListener('click', () => this.loadSyncLogs());
+
+        // [新增] 本地备份/还原事件绑定
+        document.getElementById('backup-local-btn')?.addEventListener('click', () => this.downloadLocalBackup());
+        document.getElementById('restore-local-btn')?.addEventListener('click', () => document.getElementById('local-backup-input').click());
+        document.getElementById('local-backup-input')?.addEventListener('change', (e) => this.handleLocalRestore(e));
+
         this.initSSE();
     }
 
@@ -1994,13 +2004,13 @@ class App {
         `).join('');
         } catch (err) {
             console.error(err);
-            alert('加载快照列表失败: ' + err.message);
+            showError('加载快照列表失败: ' + err.message);
         }
     }
     triggerUploadSnapshot() {
         const username = document.getElementById('snapshot-user-select')?.value;
         if (!username) {
-            alert('请先选择用户');
+            showInfo('请先选择用户');
             return;
         }
         document.getElementById('snapshot-upload-input').click();
@@ -2036,17 +2046,17 @@ class App {
                 throw new Error(text || 'Upload failed');
             }
 
-            alert('上传成功');
+            showSuccess('上传成功');
             this.loadSnapshots();
         } catch (err) {
             console.error(err);
-            alert('上传失败: ' + err.message);
+            showError('上传失败: ' + err.message);
         }
     }
 
     // [新增] 删除快照
     async deleteSnapshot(id) {
-        if (!confirm('确定要删除这个快照吗？')) return;
+        if (!(await showSelect('删除快照', '确定要删除这个快照吗？', { danger: true }))) return;
 
         const username = document.getElementById('snapshot-user-select')?.value;
         if (!username) return;
@@ -2067,14 +2077,18 @@ class App {
             }
 
             this.loadSnapshots();
+            showSuccess('删除成功');
         } catch (err) {
             console.error(err);
-            alert('删除失败: ' + err.message);
+            showError('删除失败: ' + err.message);
         }
     }
     async downloadSnapshot(id) {
         const username = document.getElementById('snapshot-user-select')?.value;
-        if (!username) return alert('请先选择用户');
+        if (!username) {
+            showInfo('请先选择用户');
+            return;
+        }
 
         try {
             // 添加 user 参数
@@ -2098,20 +2112,92 @@ class App {
             const a = document.createElement('a');
             a.href = url;
             a.download = `lx_backup_${username}_${id.substring(0, 8)}.json`;
-            document.body.appendChild(a);
             a.click();
-            document.body.removeChild(a);
             URL.revokeObjectURL(url);
         } catch (err) {
-            alert('下载失败: ' + err.message);
+            console.error(err);
+            showError('导出快照失败: ' + err.message);
+        }
+    }
+
+    // [新增] 本地备份下载
+    async downloadLocalBackup() {
+        if (!(await showSelect('本地备份', '确定要创建并下载本地全量 ZIP 备份吗？\n\n这可能需要一些时间，取决于数据量。'))) return;
+
+        try {
+            // 直接通过 URL 下载，后端会处理 ZIP 创建并流式传输
+            const url = `/api/backup/download?auth=${encodeURIComponent(this.password)}`;
+            const a = document.createElement('a');
+            a.href = url;
+            // 获取当前日期作为文件名建议
+            const dateStr = new Date().toISOString().split('T')[0];
+            a.download = `lx-sync-backup-local-${dateStr}.zip`;
+            a.click();
+        } catch (err) {
+            showError('下载本地备份失败: ' + err.message);
+        }
+    }
+
+    // [新增] 本地备份还原处理
+    async handleLocalRestore(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!(await showSelect('还原数据', '确定要从上传的 ZIP 文件还原数据吗？\n\n⚠️ 警告：这将覆盖当前的服务器所有数据！\n强烈建议在还原前先手动下载一个本地备份。操作不可撤销。', { danger: true }))) {
+            event.target.value = '';
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('backup', file);
+
+        // 创建临时加载提示
+        const loadingOverlay = document.createElement('div');
+        loadingOverlay.className = 'overlay';
+        loadingOverlay.style.background = 'rgba(0,0,0,0.8)';
+        loadingOverlay.innerHTML = `
+            <div class="login-box glass" style="padding: 3rem;">
+                <div class="status-dot" style="margin: 0 auto 1.5rem; width: 12px; height: 12px;"></div>
+                <h2>正在还原数据...</h2>
+                <p style="color: var(--text-secondary); margin-top: 1rem;">正在解压并恢复文件，请勿关闭或刷新页面。</p>
+            </div>
+        `;
+        document.body.appendChild(loadingOverlay);
+
+        try {
+            const response = await fetch('/api/backup/upload', {
+                method: 'POST',
+                headers: {
+                    'X-Frontend-Auth': this.password
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || 'Restore failed');
+            }
+
+            const result = await response.json();
+            showSuccess('🎉 还原成功！数据已更新，页面将立即刷新以加载最新配置。');
+            setTimeout(() => window.location.reload(), 1500);
+        } catch (err) {
+            console.error(err);
+            showError('本地还原失败: ' + err.message);
+            loadingOverlay.remove();
+        } finally {
+            event.target.value = '';
         }
     }
 
     async restoreSnapshot(id) {
         const username = document.getElementById('snapshot-user-select')?.value;
-        if (!username) return alert('请先选择用户');
+        if (!username) {
+            showInfo('请先选择用户');
+            return;
+        }
 
-        if (!confirm('警告：此操作将把服务器数据回滚到选定的快照状态！\n\n1. 当前所有未保存的更改将丢失。\n2. 所有客户端的同步状态将被重置。\n3. 客户端连接后，请务必选择【远程覆盖本地】以获取回滚后的数据。\n\n确定要继续吗？')) {
+        if (!(await showSelect('回滚快照', '警告：此操作将把服务器数据回滚到选定的快照状态！\n\n1. 当前所有未保存的更改将丢失。\n2. 所有客户端的同步状态将被重置。\n3. 客户端连接后，请务必选择【远程覆盖本地】以获取回滚后的数据。\n\n确定要继续吗？', { danger: true }))) {
             return;
         }
 
@@ -2121,30 +2207,30 @@ class App {
                 method: 'POST',
                 body: JSON.stringify({ id })
             });
-            alert('回滚成功！请重启客户端或重新连接同步服务。');
+            showSuccess('回滚成功！请重启客户端或重新连接同步服务。');
             this.loadDashboard(); // 刷新数据概览
         } catch (err) {
-            alert('回滚失败: ' + err.message);
+            showError('回滚失败: ' + err.message);
         }
     }
     async restartServer() {
-        if (!confirm('确定要重启服务器吗？\n\n重启后所有连接的客户端将断开，大约需要几秒钟时间。')) {
-            return
+        if (!(await showSelect('重启服务器', '确定要重启服务器吗？\n\n重启后所有连接的客户端将断开，大约需要几秒钟时间。', { danger: true }))) {
+            return;
         }
 
         try {
             const result = await this.request('/api/restart', { method: 'POST' })
             if (result.success) {
-                alert('服务器正在重启，请稍候...\n\n页面将在 5 秒后自动刷新。')
+                showSuccess('服务器正在重启，请稍候...\n\n页面将在 5 秒后自动刷新。');
                 // 5秒后刷新页面
                 setTimeout(() => {
                     window.location.reload()
                 }, 5000)
             } else {
-                alert('重启失败: ' + (result.message || '未知错误'))
+                showError('重启失败: ' + (result.message || '未知错误'))
             }
         } catch (err) {
-            alert('重启请求失败: ' + err.message)
+            showError('重启请求失败: ' + err.message)
         }
     }
 }

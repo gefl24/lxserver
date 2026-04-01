@@ -10,7 +10,7 @@
     <!-- PostHog Analytics -->
     <script>
         if (!window.CONFIG || !window.CONFIG.disableTelemetry) {
-            !function (t, e) { var o, n, p, r; e.__SV || (window.posthog = e, e._i = [], e.init = function (i, s, a) { function g(t, e) { var o = e.split("."); 2 == o.length && (t = t[o[0]], e = o[1]), t[e] = function () { t.push([e].concat(Array.prototype.slice.call(arguments, 0))) } } (p = t.createElement("script")).type = "text/javascript", p.async = !0, p.src = s.api_host + "/static/array.js", (r = t.getElementsByTagName("script")[0]).parentNode.insertBefore(p, r); var u = e; for (void 0 !== a ? u = e[a] = [] : a = "posthog", u.people = u.people || [], u.toString = function (t) { var e = "posthog"; return "posthog" !== a && (e += "." + a), t || (e += " (stub)"), e }, u.people.toString = function () { return u.toString(1) + ".people (stub)" }, o = "capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onSessionId".split(" "), n = 0; n < o.length; n++)g(u, o[n]); e._i.push([i, s, a]) }, e.__SV = 1) }(document, window.posthog || []);
+            !function (t, e) { var o, n, p, r; e.__SV || (window.posthog = e, e._i = [], e.init = function (i, s, a) { function g(t, e) { var o = e.split("."); 2 == o.length && (t = t[o[0]], e = o[1]), t[e] = function () { t.push([e].concat(Array.prototype.slice.call(arguments, 0))) } } (p = t.createElement("script")).type = "text/javascript", p.async = !0, p.src = s.api_host + "/static/array.js", p.onerror = function () { window._ph_blocked = true; }, (r = t.getElementsByTagName("script")[0]).parentNode.insertBefore(p, r); var u = e; for (void 0 !== a ? u = e[a] = [] : a = "posthog", u.people = u.people || [], u.toString = function (t) { var e = "posthog"; return "posthog" !== a && (e += "." + a), t || (e += " (stub)"), e }, u.people.toString = function () { return u.toString(1) + ".people (stub)" }, o = "capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onSessionId".split(" "), n = 0; n < o.length; n++)g(u, o[n]); e._i.push([i, s, a]) }, e.__SV = 1) }(document, window.posthog || []);
             posthog.init('phc_vvaqX7sm3RqmiqRbMCjETTc67XKjgqeMgmYHvsZr30f', { api_host: 'https://us.i.posthog.com' })
         }
     </script>
@@ -31,6 +31,16 @@
         }
     </script>
     <script src="/vendor/js/marked.min.js"></script>
+    <script src="/music/assets/tailwindcss.js"></script>
+    <script>
+        tailwind.config = {
+            corePlugins: {
+                preflight: false,
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="/music/assets/fontawesome/css/all.min.css">
+    <script src="/js/ui-utils.js"></script>
     <script src="/js/notification-engine.js"></script>
     <link href="/vendor/fonts/inter.css" rel="stylesheet">
 </head>
@@ -200,7 +210,7 @@
                         class="text-xs font-mono bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full ml-3 hidden md:inline-block"></span>
                 </div>
                 <div class="top-bar-actions">
-                    <button id="install-pwa-btn" class="btn-secondary"
+                    <button id="install-pwa-btn" class="btn-secondary" title="安装 PWA 应用"
                         style="display: none; margin-right: 1rem; padding: 0.5rem 1rem; font-size: 0.875rem;">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                             style="width: 16px; height: 16px; margin-right: 4px;">
@@ -214,7 +224,7 @@
                         <span class="status-dot"></span>
                         <span id="server-status">服务器运行中</span>
                     </div>
-                    <button id="restart-server-btn" class="btn-secondary"
+                    <button id="restart-server-btn" class="btn-secondary" title="重启服务器"
                         style="margin-left: 1rem; padding: 0.5rem 1rem; font-size: 0.875rem;">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                             style="width: 16px; height: 16px;">
@@ -224,12 +234,13 @@
                         <span>重启服务器</span>
                     </button>
                     <a href="https://github.com/XCQ0607/lxserver" target="_blank" class="btn-secondary"
+                        title="查看 GitHub 项目"
                         style="margin-left: 1rem; padding: 0.5rem 1rem; font-size: 0.875rem; text-decoration: none; display: flex; align-items: center; color: inherit;">
                         <svg viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px;">
                             <path
                                 d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
                         </svg>
-                        <span style="margin-left: 6px;">GitHub</span>
+                        <span>GitHub</span>
                     </a>
                 </div>
             </header>
@@ -533,7 +544,33 @@
                                 <p>强制同步所有变化</p>
                             </button>
                         </div>
+                        <h3
+                            style="margin-top: 2rem; margin-bottom: 1rem; color: var(--text-secondary); font-size: 1rem;">
+                            本地备份
+                        </h3>
+                        <div class="sync-actions-grid">
+                            <button id="backup-local-btn" class="action-card glass border-emerald">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                                <h4>本地备份</h4>
+                                <p>打包并下载ZIP到本地</p>
+                            </button>
+                            <button id="restore-local-btn" class="action-card glass border-amber">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="17 8 12 3 7 8" />
+                                    <line x1="12" y1="3" x2="12" y2="15" />
+                                </svg>
+                                <h4>本地恢复</h4>
+                                <p>上传并还原ZIP备份</p>
+                            </button>
+                        </div>
+                        <input type="file" id="local-backup-input" style="display: none;" accept=".zip">
                         <!-- 同步状态 -->
+
                         <div class="sync-status-section glass">
                             <h3>同步状态</h3>
                             <div id="sync-status-content">

@@ -407,6 +407,24 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       return
     }
 
+    // [修正] 增强映射根路径 / 到后端管理界面
+    if (pathname === '/' || pathname === '/index.html') {
+      const rootHtmlPath = path.join(global.lx.staticPath, 'index.html')
+      if (fs.existsSync(rootHtmlPath)) {
+        serveStatic(req, res, rootHtmlPath)
+        return
+      }
+    }
+
+    // [新增] 全局静态文件兜底 (处理根目录下的 style.css, app.js, icon.svg 等)
+    if (!pathname.startsWith('/api/')) {
+      const generalFilePath = path.join(global.lx.staticPath, pathname)
+      if (fs.existsSync(generalFilePath) && fs.statSync(generalFilePath).isFile()) {
+        serveStatic(req, res, generalFilePath)
+        return
+      }
+    }
+
     // 动态 config.js - 从静态文件读取版本号, 合并服务端配置注入 window.CONFIG
     // 配置优先级: 环境变量 > 根目录 config.js > src/defaultConfig.ts
     if (pathname === '/js/config.js') {
@@ -3024,6 +3042,80 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         })
         return
       }
+      // [新增] 本地备份下载 API
+      if (pathname === '/api/backup/download' && req.method === 'GET') {
+        const auth = req.headers['x-frontend-auth'] || urlObj.searchParams.get('auth')
+        if (auth !== global.lx.config['frontend.password']) {
+          res.writeHead(401); res.end('Unauthorized'); return
+        }
+
+        try {
+          const webdavSync = global.lx.webdavSync
+          if (!webdavSync) throw new Error('Backup system not initialized')
+
+          const zipName = await webdavSync.createBackup()
+          if (!zipName) throw new Error('Backup creation failed')
+
+          const zipPath = path.join(global.lx.dataPath, zipName)
+          if (!fs.existsSync(zipPath)) throw new Error('ZIP file not found')
+
+          res.writeHead(200, {
+            'Content-Type': 'application/zip',
+            'Content-Disposition': `attachment; filename="${zipName}"`,
+          })
+          const readStream = fs.createReadStream(zipPath)
+          readStream.pipe(res)
+          readStream.on('finish', () => {
+            // 延时删除本地临时ZIP文件
+            setTimeout(() => {
+              if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath)
+            }, 5000)
+          })
+        } catch (err: any) {
+          res.writeHead(500); res.end(err.message)
+        }
+        return
+      }
+
+      // [新增] 本地备份还原 API
+      if (pathname === '/api/backup/upload' && req.method === 'POST') {
+        const auth = req.headers['x-frontend-auth']
+        if (auth !== global.lx.config['frontend.password']) {
+          res.writeHead(401); res.end('Unauthorized'); return
+        }
+
+        const form = formidable({ multiples: false, uploadDir: os.tmpdir() })
+        form.parse(req, async (err: any, fields: any, files: any) => {
+          if (err) {
+            res.writeHead(500); res.end('Upload failed: ' + err.message); return
+          }
+          // formidable v3 字段返回可能是数组
+          let file = files.backup || files.file || Object.values(files)[0]
+          if (Array.isArray(file)) file = file[0]
+
+          if (!file || !file.filepath) {
+            res.writeHead(400); res.end('No ZIP file uploaded'); return
+          }
+
+          try {
+            const webdavSync = global.lx.webdavSync
+            if (!webdavSync) throw new Error('Restore system not initialized')
+
+            await webdavSync.extractZip(file.filepath, global.lx.dataPath)
+
+            // 删除临时上传的文件
+            if (fs.existsSync(file.filepath)) fs.unlinkSync(file.filepath)
+
+            res.writeHead(200, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ success: true, message: 'Restore from local ZIP success' }))
+          } catch (restoreErr: any) {
+            console.error('Local Restore Error:', restoreErr)
+            res.writeHead(500); res.end('Restore failed: ' + restoreErr.message)
+          }
+        })
+        return
+      }
+
       // Restart Server API
       if (pathname === '/api/restart' && req.method === 'POST') {
         const auth = req.headers['x-frontend-auth']

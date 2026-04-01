@@ -73,3 +73,7 @@ cache
 docs/.vitepress/dist
 docs/.vitepress/cache
 docs/node_modules
+
+# Electron build outputs (CI-generated)
+electron/icons/
+dist-electron/

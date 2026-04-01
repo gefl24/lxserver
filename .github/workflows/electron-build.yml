@@ -1,0 +1,87 @@
+name: Build Electron Desktop App
+
+on:
+  # 手动触发（最灵活）
+  workflow_dispatch:
+  # 或推送 tag 时自动触发，如 git tag v2.1.2-desktop && git push --tags
+  push:
+    tags:
+      - 'v*-desktop'
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+          - os: macos-latest
+            platform: mac
+          - os: ubuntu-latest
+            platform: linux
+
+    runs-on: ${{ matrix.os }}
+    name: Build (${{ matrix.platform }})
+
+    steps:
+      # ── 1. 检出代码 ──────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. 设置 Node.js ──────────────────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # ── 3. Linux 需要 WebKit / GTK（系统托盘依赖）───────────────────────
+      - name: Install Linux system deps
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libnotify-dev libgconf-2-4 libnss3 libxss1 libasound2
+
+      # ── 4. 安装 npm 依赖（包括 electron、electron-builder、sharp）───────
+      - name: Install dependencies
+        run: npm ci
+
+      # ── 5. 重新编译原生模块以匹配打包的 Electron 版本 ───────────────────
+      - name: Rebuild native modules for Electron
+        run: npx electron-rebuild
+        env:
+          npm_config_build_from_source: true
+
+      # ── 6. 编译 TypeScript 服务器代码 ───────────────────────────────────
+      - name: Build server (TypeScript → JS)
+        run: npm run build
+
+      # ── 7. 生成 Electron 图标（SVG → PNG） ─────────────────────────────
+      - name: Generate electron icons
+        run: npm run electron:icons
+
+      # ── 8. 打包 Electron 应用 ─────────────────────────────────────────
+      - name: Package Electron app
+        run: npx electron-builder --${{ matrix.platform }} --publish=never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # macOS 签名（可选，没有证书时跳过）
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          # 使用 npmmirror 加速 Electron 二进制下载
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
+
+      # ── 9. 上传构建产物到 Artifacts ─────────────────────────────────────
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: lxserver-desktop-${{ matrix.platform }}
+          path: |
+            dist-electron/*.exe
+            dist-electron/*.dmg
+            dist-electron/*.AppImage
+            dist-electron/*.deb
+            dist-electron/*.zip
+          if-no-files-found: warn
+          retention-days: 30

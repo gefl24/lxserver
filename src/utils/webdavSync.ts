@@ -537,7 +537,7 @@ class WebDAVSync extends EventEmitter {
         }
     }
 
-    private async extractZip(zipPath: string, targetPath: string): Promise<void> {
+    public async extractZip(zipPath: string, targetPath: string): Promise<void> {
         return new Promise((resolve, reject) => {
             fs.createReadStream(zipPath)
                 .pipe(Extract({ path: targetPath }))

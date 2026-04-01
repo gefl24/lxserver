@@ -68,7 +68,7 @@ module.exports = {
 
   // WebDAV 密码
   // 环境变量: WEBDAV_PASSWORD
-  "webdav.password": " ",
+  "webdav.password": "",
 
   // 同步间隔 (分钟)
   // 环境变量: SYNC_INTERVAL

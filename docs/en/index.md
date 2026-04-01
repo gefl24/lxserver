@@ -25,6 +25,9 @@ features:
     details: Online console visualizes device status, user data, providing complete data control and system configuration management.
   - title: One-click Multi-end Connection
     details: Can be deployed via Docker or simple command line, and natively supports WebDAV incremental cloud backups.
+  - title: Full Desktop Support
+    details: Dedicated clients for Win/Mac/Linux with system tray, auto port-conflict resolution, and portable mode.
+
 ---
 
 <style>

@@ -109,21 +109,22 @@
         let versionBadge = '';
         if (isVerRelated) {
             let targetVer = '未知';
+            const currentVer = CONFIG.getLocalVersion().replace(/^v+/, 'v');
             if (item.logic && item.logic.target_version) {
-                targetVer = item.logic.target_version;
+                targetVer = item.logic.target_version.replace(/^v+/, 'v');
             } else if (item.id === 'manual_check_uptodate') {
                 targetVer = currentVer;
             }
             versionBadge = `
-                <div style="display: flex; align-items: center; justify-content: space-around; gap: 12px; margin: 16px 0; padding: 12px; background: rgba(0,0,0,0.03); border-radius: 12px; font-size: 13px;">
-                    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                        <span style="color: #6b7280; font-size: 10px; font-weight: 600; text-transform: uppercase;">当前版本</span>
-                        <span style="color: #111827; font-weight: 700;">${currentVer}</span>
+                <div style="display: flex; align-items: center; justify-content: space-around; gap: 12px; margin: 16px 0; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; font-size: 13px;">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                        <span style="color: rgba(255,255,255,0.4); font-size: 10px; font-weight: 600; text-transform: uppercase;">当前版本</span>
+                        <span style="color: #fff; font-weight: 700;">${currentVer}</span>
                     </div>
-                    <div style="width: 1px; height: 24px; background: rgba(0,0,0,0.1);"></div>
-                    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                        <span style="color: #6b7280; font-size: 10px; font-weight: 600; text-transform: uppercase;">最新版本</span>
-                        <span style="color: ${item.type === 'version' ? styleConfig.color : '#111827'}; font-weight: 700;">${targetVer}</span>
+                    <div style="width: 1px; height: 24px; background: rgba(255,255,255,0.1);"></div>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                        <span style="color: rgba(255,255,255,0.4); font-size: 10px; font-weight: 600; text-transform: uppercase;">最新版本</span>
+                        <span style="color: ${item.type === 'version' ? styleConfig.color : '#fff'}; font-weight: 700; text-shadow: 0 0 10px ${styleConfig.color}40;">${targetVer}</span>
                     </div>
                 </div>
             `;
@@ -135,11 +136,14 @@
 
         const modal = document.createElement('div');
         modal.style.cssText = `
-            background: #ffffff; 
-            width: 340px; 
+            background: rgba(18, 23, 41, 0.8);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            width: 380px; 
             padding: 0;
-            border-radius: 16px; 
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15); 
+            border-radius: 28px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
             text-align: center; 
             overflow: hidden;
             animation: phFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -152,7 +156,7 @@
             style.textContent = `
                 @keyframes phFadeIn { from {opacity:0;transform:scale(0.95) translateY(20px);} to {opacity:1;transform:scale(1) translateY(0);} }
                 .ph-btn { transition: all 0.2s; position: relative; overflow: hidden; }
-                .ph-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+                .ph-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
                 .ph-btn:active { transform: scale(0.98); }
             `;
             document.head.appendChild(style);
@@ -167,33 +171,42 @@
                 <div style="
                     margin: 0 auto 16px; 
                     width: 64px; height: 64px; 
-                    border-radius: 50%; 
+                    border-radius: 24px; 
                     background: ${styleConfig.bg}; 
                     color: ${styleConfig.color};
                     display: flex; align-items: center; justify-content: center;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    box-shadow: 0 8px 24px ${styleConfig.color}30;
                 ">
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         ${styleConfig.icon}
                     </svg>
                 </div>
                 
-                <h3 style="margin:0 0 10px; color:var(--c-900, #111827); font-size:20px; font-weight:700; letter-spacing: -0.5px;">${title}</h3>
+                <h3 style="margin:0 0 10px; color:#fff; font-size:20px; font-weight:700; letter-spacing: -0.5px;">${title}</h3>
                 ${versionBadge}
-                ${item.ui.date ? `<p style="margin:0 0 8px; color:var(--c-500, #9ca3af); font-size:12px;">更新日期: ${item.ui.date}</p>` : ''}
-                <p style="margin:0; color:var(--c-600, #6b7280); font-size:15px; line-height:1.6;">${message.replace(/\n/g, '<br/>')}</p>
+                ${item.ui.date ? `<p style="margin:0 0 8px; color:rgba(255,255,255,0.5); font-size:12px;">发布日期: ${item.ui.date}</p>` : ''}
+                
+                <div style="margin-top: 16px; padding: 16px; background: rgba(0,0,0,0.2); border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); text-align: left; max-height: 200px; overflow-y: auto;">
+                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 10px;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${styleConfig.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        <span style="font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.6); text-transform: uppercase;">更新内容与日志</span>
+                    </div>
+                    <p style="margin:0; color:rgba(255,255,255,0.85); font-size:14px; line-height:1.6;">${message.replace(/\n/g, '<br/>')}</p>
+                </div>
             </div>
 
-            <div style="padding: 20px 24px 24px; display:flex; gap:12px; justify-content:center;">
+            <div style="padding: 0 24px 24px; display:flex; gap:12px; justify-content:center;">
                 ${hasCancel ? `
                 <button id="ph-btn-cancel" class="ph-btn" style="
-                    flex:1; padding:12px; border:1px solid var(--c-200, #e5e7eb); background:white; 
-                    border-radius:12px; cursor:pointer; color:var(--c-600, #4b5563); font-weight:600; font-size:15px;
+                    flex:1; padding:14px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.05); 
+                    border-radius:16px; cursor:pointer; color:rgba(255,255,255,0.6); font-weight:600; font-size:15px;
                 ">${cancel_text}</button>` : ''}
                 
                 <button id="ph-btn-confirm" class="ph-btn" style="
-                    flex:1; padding:12px; border:none; background:${styleConfig.color}; 
-                    color:#ffffff; border-radius:12px; cursor:pointer; font-weight:600; font-size:15px;
-                    box-shadow: 0 4px 12px -2px ${styleConfig.color}40;
+                    flex:1; padding:14px; border:none; background:${styleConfig.color}; 
+                    color:#ffffff; border-radius:16px; cursor:pointer; font-weight:600; font-size:15px;
+                    box-shadow: 0 4px 16px ${styleConfig.color}40; letter-spacing: 0.5px;
                 ">${confirm_text}</button>
             </div>
         `;
@@ -299,12 +312,34 @@
                 return;
             }
             const data = (typeof payload === 'string') ? JSON.parse(payload) : payload;
+            let latestItem = null;
             if (Array.isArray(data)) {
                 data.forEach(item => {
+                    if (item.type === 'version' && (!latestItem || compareVersions(item.logic.target_version, latestItem.logic.target_version) > 0)) latestItem = item;
                     if (processItem(item, isManual)) hasUpdate = true;
                 });
             } else {
+                if (data.type === 'version') latestItem = data;
                 if (processItem(data, isManual)) hasUpdate = true;
+            }
+
+            if (isManual && !hasUpdate) {
+                const msg = latestItem && latestItem.ui && latestItem.ui.message
+                    ? latestItem.ui.message
+                    : `无法从服务器获取到版本发布详情，您的系统当前版本为 ${CONFIG.getLocalVersion()}。`;
+                const upToDateItem = {
+                    id: 'manual_check_uptodate',
+                    type: 'info',
+                    ui: {
+                        title: '当前已是最新版本',
+                        message: msg,
+                        confirm_text: '确定',
+                        cancel_text: ''
+                    },
+                    action: { type: 'close' },
+                    logic: { interval_hours: 0 }
+                };
+                renderModal(upToDateItem, 'temp_manual_check', null);
             }
         } catch (e) {
             console.error(`[Notification] Error processing payload from ${sourceKey}:`, e);
@@ -319,22 +354,28 @@
             if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
             const data = await res.json();
             let hasUpdate = false;
+            let latestItem = null;
             if (Array.isArray(data)) {
                 data.forEach(item => {
+                    if (item.type === 'version' && (!latestItem || compareVersions(item.logic.target_version, latestItem.logic.target_version) > 0)) latestItem = item;
                     if (processItem(item, isManual)) hasUpdate = true;
                 });
             } else {
+                if (data.type === 'version') latestItem = data;
                 if (processItem(data, isManual)) hasUpdate = true;
             }
 
             if (isManual && !hasUpdate) {
+                const msg = latestItem && latestItem.ui && latestItem.ui.message
+                    ? latestItem.ui.message
+                    : `无法从服务器获取到版本发布详情，您的系统当前版本为 ${CONFIG.getLocalVersion()}。`;
                 // Construct a temporary item for "Up to date"
                 const upToDateItem = {
                     id: 'manual_check_uptodate',
                     type: 'info', // Will use Success/Check icon based on title match in getStyleConfig
                     ui: {
                         title: '当前已是最新版本',
-                        message: '您的 LX Music Server 已更新到最新版本，无需更新。',
+                        message: msg,
                         confirm_text: '确定',
                         cancel_text: ''
                     },
@@ -389,21 +430,39 @@
         });
     }
 
-    function checkUpdates(isManual = false) {
+    async function checkUpdates(isManual = false) {
+        // 如果是手动检查，增加一个主动探测逻辑来判断 PostHog 是否被拦截
+        let adBlocked = !!window._ph_blocked;
+        if (isManual && !adBlocked) {
+            // 如果 posthog 对象看起来还没完全加载，进行一次 fetch 探测
+            if (typeof posthog === 'undefined' || !posthog.__loaded) {
+                try {
+                    await fetch('https://us.i.posthog.com/static/array.js', { mode: 'no-cors', cache: 'no-store' });
+                } catch (e) {
+                    console.warn('[Notification] Proactive AdBlocker detection triggered.');
+                    adBlocked = true;
+                }
+            }
+        }
+
         // 如果是手动检查，尝试强制刷新 PostHog 配置以获取最新数据
-        if (isManual && typeof posthog !== 'undefined') {
+        if (isManual && typeof posthog !== 'undefined' && !adBlocked) {
             try { posthog.reloadFeatureFlags(); } catch (e) { console.error('[Notification] Reload flags failed:', e); }
         }
 
-        // 如果服务没加载，或者配置里明确禁用了，直接弹窗告知原因
-        if (typeof posthog === 'undefined' || (window.CONFIG && window.CONFIG.disableTelemetry)) {
+        // 如果服务没加载，或者被 AdBlocker 拦截，或者配置里明确禁用了，直接弹窗提示
+        if (typeof posthog === 'undefined' || (window.CONFIG && window.CONFIG.disableTelemetry) || adBlocked) {
             if (isManual) {
+                const message = adBlocked
+                    ? '由于您的浏览器广告拦截插件（AdBlocker）拦截了更新检查服务，无法在线获取最新版本信息。请暂时关闭插件或将 LX Server 地址加入白名单。'
+                    : '由于在线更新检测服务未加载（可能已禁用统计），请前往 GitHub 检查最新版本。';
+
                 const errorItem = {
                     id: 'manual_check_disabled',
                     type: 'warning',
                     ui: {
-                        title: '检查更新失败',
-                        message: '由于你已禁用了「数据收集与统计」，在线更新检查服务未加载。请前往 GitHub 检查最新版本。',
+                        title: '检查更新受阻',
+                        message: message,
                         confirm_text: '确定',
                         cancel_text: ''
                     },
@@ -429,13 +488,13 @@
         }
 
         if (isManual && !checked) {
-            // 如果 Feature Flags 里没东西，仅显示“已是最新”即可，不再尝试虚假的本地路径
+            // 如果 Feature Flags 里没东西，仅显示提示即可
             const upToDateItem = {
                 id: 'manual_check_uptodate',
                 type: 'info',
                 ui: {
                     title: '当前已是最新版本',
-                    message: '未发现可用更新，您的 LX Music Server 运行良好。',
+                    message: `无法从服务器获取到版本发布详情，您的系统当前版本为 ${CONFIG.getLocalVersion().replace(/^v+/, 'v')}。`,
                     confirm_text: '确定',
                     cancel_text: ''
                 },

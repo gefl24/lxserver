@@ -1,0 +1,56 @@
+name: Manual Desktop Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_name:
+        description: 'Build name / version suffix (optional)'
+        default: 'manual-build'
+        required: false
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # 运行在三个主流系统上进行构建
+        os: [windows-latest, macos-latest, ubuntu-latest]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build JS Source
+        run: npm run electron:build
+
+      - name: Build Electron App
+        # 使用之前配置好的镜像加速，确保 CI 运行顺畅
+        env:
+          ELECTRON_MIRROR: "https://npmmirror.com/mirrors/electron/"
+          ELECTRON_BUILDER_BINARIES_MIRROR: "https://npmmirror.com/mirrors/electron-builder-binaries/"
+          # 如果是 macOS 构建，可能需要禁用代码签名（除非你有证书）
+          CSC_LINK_SKIP: true
+        run: npx electron-builder --publish never
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: lx-server-${{ matrix.os }}-${{ github.event.inputs.build_name }}
+          path: |
+            dist-electron/*.exe
+            dist-electron/*.dmg
+            dist-electron/*.zip
+            dist-electron/*.AppImage
+            dist-electron/*.deb
+            dist-electron/*.rpm
+          if-no-files-found: warn

@@ -8,7 +8,7 @@
   <h1>LX Sync Server</h1> -->
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
-    <img src="https://img.shields.io/badge/version-v1.8.0-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.8.1-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D16-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/XCQ0607/lxserver?style=flat-square" alt="License">
     <br>
@@ -23,6 +23,21 @@
 </div>
 
 [帮助文档 Documentation](https://xcq0607.github.io/lxserver/) | [同步服务器 SyncServer](md/lxserver.md) | [更新日志 Changelog](changelog.md) | [English](README_EN.md)
+
+---
+
+## 🖥️ 桌面客户端 (新!)
+
+现在你可以通过桌面端更方便地运行 LX Music Sync Server，支持 Windows、macOS 和 Linux。
+
+- **📦 最新版本下载**: [GitHub Releases](https://github.com/XCQ0607/lxserver/releases/latest)
+- **✨ 桌面端优势**:
+  - **单窗口管理**: 服务器管理与 Web 播放器合二为一，界面更统一。
+  - **托盘常驻**: 窗口关闭后自动缩回托盘，服务在后台持续稳定运行。
+  - **自动避让端口**: 启动时自动检测端口占用，冲突时自动切换，省去手动配置烦恼。
+  - **初始化指引**: 初次启动强制引导选择数据存储路径，支持**便携模式**。
+  - **全架构支持**: 提供 Windows (Universal/x64/ARM64)、macOS (Universal) 及 Linux (deb/AppImage) 全家桶。
+
 
 本项目内置了一个功能强大的 **Web 播放器**，让你可以随时随地在浏览器中享受音乐。同时，它也是一个增强版的 [LX Music 数据同步服务端](md/lxserver.md)。
 
