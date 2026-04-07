@@ -1,9 +1,0 @@
-blank_issues_enabled: false  # 这里是关键，设置为 false 禁止空白 issue
-contact_links:
-  - name: 💬 加入讨论区 (Discussions)
-    url: https://github.com/XCQ0607/lxserver/discussions
-    about: 如果你有一般性的问题或想闲聊，请去讨论区。
-  - name: 🔒 安全漏洞报告 (Security Policy)
-    url: https://github.com/XCQ0607/lxserver/blob/main/.github/SECURITY.md
-    about: 发现严重安全漏洞？请阅读我们的安全政策并依据指引以邮件形式反馈。
-
