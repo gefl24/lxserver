@@ -1,4 +1,4 @@
-# LX Music Sync Server (Enhanced Edition)
+# 基于原LX Music Sync Server (Enhanced Edition)项目，魔改版本增加本地歌曲管理功能
 
 ![lxserver](https://socialify.git.ci/XCQ0607/lxserver/image?description=1&forks=0&issues=0&logo=https://raw.githubusercontent.com/XCQ0607/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=0&stargazers=0&theme=Auto)
 
