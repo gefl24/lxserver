@@ -148,7 +148,8 @@ docker run -d \
   -v $(pwd)/cache:/server/cache \
   --name lx-sync-server \
   --restart unless-stopped \
-  xcq0607/lxserver:latest
+  geelonn/lxserver:latest
+
 ```
 
 **Docker Compose 示例：**
