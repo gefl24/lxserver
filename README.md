@@ -156,10 +156,9 @@ docker run -d \
 新建 `docker-compose.yml` 文件：
 
 ```yaml
-version: '3'
 services:
   lx-sync-server:
-    image: xcq0607/lxserver:latest
+    image: geelonn/lxserver:latest
     container_name: lx-sync-server
     restart: unless-stopped
     ports:
@@ -168,11 +167,17 @@ services:
       - ./data:/server/data
       - ./logs:/server/logs
       - ./cache:/server/cache
+      - ./downloads:/server/downloads
+      - ./music:/server/music
     environment:
       - NODE_ENV=production
-      # - FRONTEND_PASSWORD=123456
-      # - ENABLE_WEBPLAYER_AUTH=true
+      - ENABLE_LOCAL_DOWNLOAD=true   # 开启本地下载功能
+      - DOWNLOAD_PATH=/server/downloads
+      - MUSIC_PATH=/server/music
+      - FRONTEND_PASSWORD=123456     # 管理后台密码
+      # - ENABLE_WEBPLAYER_AUTH=true # 开启播放器访问认证
       # - WEBPLAYER_PASSWORD=yourpassword
+
 ```
 
 ### 方式三：直接运行 (Git Clone)
