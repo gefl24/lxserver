@@ -55,11 +55,11 @@ services:
 
 ## 📈 Star History
 
-<a href="https://star-history.com/#XCQ0607/lxserver&Date">
+<a href="https://star-history.com/#gefl24/lxserver&Date">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=XCQ0607/lxserver&type=Date&theme=dark" />
     <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=XCQ0607/lxserver&type=Date" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=XCQ0607/lxserver&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=gefl24/lxserver&type=Date" />
   </picture>
 </a>
 
