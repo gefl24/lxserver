@@ -1,5 +1,5 @@
 # 基于原LX Music Sync Server (Enhanced Edition)项目魔改
-## 增加本地歌曲管理功能  支持Subsonic API  支持小爱音箱
+## 增加本地歌曲管理功能·支持Subsonic API·支持小爱音箱
 ## 新项目支持网盘 [gefl24/musicon](https://github.com/gefl24/music-on)。
 
 **Docker Run 示例：**
