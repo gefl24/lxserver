@@ -1,7 +1,7 @@
-# 基于原LX Music Sync Server (Enhanced Edition)项目
-# 魔改版本增加本地歌曲管理功能
-# 支持Subsonic API
-# 支持小爱音箱
+# 基于原LX Music Sync Server (Enhanced Edition)项目魔改
+## 增加本地歌曲管理功能
+## 支持Subsonic API
+## 支持小爱音箱
 
 
 **Docker Run 示例：**
