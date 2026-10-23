@@ -10,9 +10,10 @@ docker run -d \
   -v $(pwd)/data:/server/data \
   -v $(pwd)/logs:/server/logs \
   -v $(pwd)/cache:/server/cache \
+  -v $(pwd)/music:/server/music \
   --name lx-sync-server \
   --restart unless-stopped \
-  geelonn/lxserver:latest
+  geelonn/lxserver:3.2.0
 
 ```
 
